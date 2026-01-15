@@ -3,9 +3,9 @@
 Данный проект позволяет установить **Keenetic NFQWS** с web-интерфейсом на маршрутизатор Keenetic.
 Добавлена проверка доменов в конфиге на доступоность.
 
-![Uploading Скриншот-1.jpg…]()
+![Uploading Скриншот-1.jpg…](https://github.com/disasdter/Keenetic-NFQWS-Theme/blob/main/%D0%A1%D0%BA%D1%80%D0%B8%D0%BD%D1%88%D0%BE%D1%82-1.jpg?raw=true)
 
-![Uploading Скриншот-2.jpg…]()
+![Uploading Скриншот-2.jpg…](https://github.com/disasdter/Keenetic-NFQWS-Theme/blob/main/%D0%A1%D0%BA%D1%80%D0%B8%D0%BD%D1%88%D0%BE%D1%82-2.jpg?raw=true)
 
 ---
 
