@@ -27,6 +27,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/display/fullscreen.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+    <script src="nfqws-syntax.js"></script>
 
     <script defer src="tln.min.js?v=v2.10.8"></script>
     <script defer src="script.js?v=v2.10.8" type="module"></script>
@@ -37,7 +38,8 @@
 <body class="unknown">
 <script>
     // Инициализация темы и языка
-    const theme = localStorage.getItem('theme') || 'light';
+    localStorage.setItem('theme', localStorage.getItem('theme') || 'dark');
+    const theme = localStorage.getItem('theme');
     const lang = localStorage.getItem('lang') || 'en';
     
     const root = document.querySelector(':root');
@@ -86,30 +88,23 @@
 
 <header>
     <h1 class="logo">
-        <svg class="logo-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Основа щита (синяя) -->
+        <!-- <svg class="logo-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path class="shield-base" d="M12 2L4 5V11C4 16.55 7.84 21.74 12 23C16.16 21.74 20 16.55 20 11V5L12 2Z" 
                   fill="none" 
                   stroke="#007AFF" 
                   stroke-width="2" 
                   stroke-linecap="round" 
                   stroke-linejoin="round"/>
-            
-            <!-- Основная трещина (красная) -->
             <path class="crack-main" d="M8 8L12 12L16 16" 
                   fill="none" 
                   stroke="#FF3B30" 
                   stroke-width="2" 
                   stroke-linecap="round"/>
-            
-            <!-- Вторичная трещина (красная) -->
             <path class="crack-secondary" d="M16 8L12 12L8 16" 
                   fill="none" 
                   stroke="#FF3B30" 
                   stroke-width="2" 
                   stroke-linecap="round"/>
-            
-            <!-- Мелкие трещины (оранжевые) -->
             <line class="small-crack crack-1" x1="10" y1="6" x2="12" y2="8" 
                   stroke="#FF9500" 
                   stroke-width="1.5" 
@@ -126,11 +121,9 @@
                   stroke="#FF9500" 
                   stroke-width="1.5" 
                   stroke-linecap="round"/>
-            
-            <!-- Отколовшиеся фрагменты -->
             <circle class="fragment fragment-1" cx="7" cy="7" r="1" fill="#FF3B30" opacity="0.7"/>
             <circle class="fragment fragment-2" cx="17" cy="17" r="1" fill="#FF3B30" opacity="0.7"/>
-        </svg>
+        </svg> -->
         Keenetic NFQWS <span id="status"></span>
     </h1>
     <div class="header-controls">
@@ -189,12 +182,23 @@
                     </svg>
                     <span id="update-text">Update</span>
                 </li>
+                <!-- syntax toggle moved to footer -->
             </ul>
         </div>
     </div>
 </header>
 
-<nav></nav>
+<div class="nav-row">
+    <nav></nav>
+    <div class="nav-actions">
+        <button id="add-file" type="button" class="nav-add" title="Create file">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14"/>
+                <path d="M5 12h14"/>
+            </svg>
+        </button>
+    </div>
+</div>
 
 <article>
     <div class="editor-container">
@@ -246,7 +250,7 @@
             </svg>
             Repository
         </a>
-        <a class="footer-tab" href="https://github.com/disasdter/Keenetic-NFQWS-Theme" target="_blank">
+        <a class="footer-tab" href="https://github.com/Twinkle264/Keenetic-NFQWS-Web-Theme" target="_blank">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/>
                 <path d="M12 2v2" stroke="currentColor" stroke-width="2"/>
@@ -283,6 +287,15 @@
                 <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
             </svg>
+        </span>
+
+        <!-- Syntax toggle -->
+        <span id="syntax-toggle" class="footer-tab" title="Switch syntax highlighting">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+            <span id="syntax-text">NFQWS</span>
         </span>
         
         <!-- Logout -->
@@ -378,10 +391,30 @@
     </div>
 </div>
 
+<div id="create-file" class="popup hidden">
+    <div class="popup-header">
+        <span class="popup-title" id="create-file-title">Create file</span>
+        <button class="popup-close-btn" id="create-file-close" title="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+    <div class="popup-content">
+        <input type="text" class="login-input" id="create-file-name" placeholder="e.g. my.list" />
+    </div>
+    <div class="popup-footer">
+        <button class="popup-yes" id="create-file-confirm">Create</button>
+        <button class="popup-no" id="create-file-cancel">Cancel</button>
+    </div>
+</div>
+
 <script>
     // JavaScript для анимации логотипа
     document.addEventListener('DOMContentLoaded', function() {
         const logo = document.querySelector('.logo-icon');
+        if (!logo) return;
         
         // Анимация пульсации всего логотипа
         setInterval(() => {

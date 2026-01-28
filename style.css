@@ -156,6 +156,14 @@ header:hover {
     gap: var(--space-sm);
 }
 
+:root[data-theme="dark"] .logo {
+    color: #545454;
+}
+
+:root[data-theme="light"] .logo {
+    color: #c1c1c1;
+}
+
 .logo-icon {
     width: 28px;
     height: 28px;
@@ -367,6 +375,23 @@ body.running #stop,
 }
 
 /* Navigation Tabs */
+.nav-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.nav-actions {
+    display: flex;
+    align-items: center;
+    padding: var(--space-sm);
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 0px solid var(--color-border);
+    min-height: 50px;
+}
+
 nav {
     display: flex;
     gap: var(--space-xs);
@@ -379,6 +404,7 @@ nav {
     scrollbar-width: thin;
     scrollbar-color: var(--color-scrollbar) transparent;
     min-height: 50px;
+    flex: 1 1 auto;
 }
 
 nav::-webkit-scrollbar {
@@ -393,6 +419,34 @@ nav::-webkit-scrollbar-track {
 nav::-webkit-scrollbar-thumb {
     background: var(--color-scrollbar);
     border-radius: var(--radius-sm);
+}
+
+
+.nav-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: var(--color-surface-alt);
+    border: 0px solid var(--color-border-light);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex: 0 0 auto;
+}
+
+.nav-add:hover {
+    background: var(--color-surface);
+    color: var(--color-text);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.nav-add svg {
+    width: 16px;
+    height: 16px;
 }
 
 .nav-tab {
@@ -691,6 +745,164 @@ body.fullscreen-active footer {
     background: rgba(0, 122, 255, 0.2) !important;
 }
 
+/* Slime syntax theme overrides (dark only) */
+:root[data-theme="dark"] .CodeMirror {
+    background: #292D30 !important;
+    color: #FFFFFF !important;
+}
+
+:root[data-theme="dark"] .CodeMirror-gutters {
+    background: #292D30 !important;
+}
+
+:root[data-theme="dark"] .CodeMirror-cursor {
+    border-left-color: #f8f8f0 !important;
+}
+
+:root[data-theme="dark"] .CodeMirror-selected,
+:root[data-theme="dark"] .CodeMirror-focused .CodeMirror-selected {
+    background: #C7AF3F !important;
+}
+
+:root[data-theme="dark"] .cm-comment {
+    color: #4F5A63 !important;
+}
+
+:root[data-theme="dark"] .cm-keyword {
+    color: #9FB3C2 !important;
+}
+
+:root[data-theme="dark"] .cm-operator,
+:root[data-theme="dark"] .cm-punctuation,
+:root[data-theme="dark"] .cm-bracket {
+    color: #FFFFFF !important;
+}
+
+:root[data-theme="dark"] .cm-atom {
+    color: #9FB3C2 !important;
+}
+
+:root[data-theme="dark"] .cm-number {
+    color: #6c71c4 !important;
+}
+
+:root[data-theme="dark"] .cm-def {
+    color: #C7AF3F !important;
+}
+
+:root[data-theme="dark"] .cm-variable {
+    color: #FFFFFF !important;
+}
+
+:root[data-theme="dark"] .cm-variable-2,
+:root[data-theme="dark"] .cm-builtin {
+    color: #9FB3C2 !important;
+}
+
+:root[data-theme="dark"] .cm-string,
+:root[data-theme="dark"] .cm-string-2 {
+    color: #FAFFDB !important;
+}
+
+:root[data-theme="dark"] .cm-error {
+    color: #dc322f !important;
+    text-decoration: underline;
+}
+
+:root[data-theme="dark"] .cm-nfqws-filter {
+    color: #2aa198 !important;
+}
+
+:root[data-theme="dark"] .cm-nfqws-new {
+    color: #2aa198 !important;
+    font-weight: 600;
+}
+
+/* nfqws.conf custom token */
+:root[data-theme="dark"] .cm-s-dracula .cm-nfqws-filter,
+:root[data-theme="dark"] .cm-s-default .cm-nfqws-filter {
+    color: #2aa198 !important;
+}
+
+:root[data-theme="dark"] .cm-s-dracula .cm-nfqws-new,
+:root[data-theme="dark"] .cm-s-default .cm-nfqws-new {
+    color: #2aa198 !important;
+}
+
+/* Light syntax theme overrides */
+:root[data-theme="light"] .CodeMirror {
+    background: #ffffff !important;
+    color: #4d463e !important;
+}
+
+:root[data-theme="light"] .CodeMirror-gutters {
+    background: #ffffff !important;
+}
+
+:root[data-theme="light"] .CodeMirror-cursor {
+    border-left-color: #111111 !important;
+}
+
+:root[data-theme="light"] .CodeMirror-selected,
+:root[data-theme="light"] .CodeMirror-focused .CodeMirror-selected {
+    background: #60A365 !important;
+    color: #ffffff !important;
+}
+
+:root[data-theme="light"] .cm-comment {
+    color: #d6cab9 !important;
+}
+
+:root[data-theme="light"] .cm-keyword {
+    color: #DB784D !important;
+}
+
+:root[data-theme="light"] .cm-operator,
+:root[data-theme="light"] .cm-punctuation,
+:root[data-theme="light"] .cm-bracket {
+    color: #4d463e !important;
+}
+
+:root[data-theme="light"] .cm-atom {
+    color: #DB784D !important;
+}
+
+:root[data-theme="light"] .cm-number {
+    color: #F8BB39 !important;
+}
+
+:root[data-theme="light"] .cm-def {
+    color: #DB784D !important;
+}
+
+:root[data-theme="light"] .cm-variable {
+    color: #4d463e !important;
+}
+
+:root[data-theme="light"] .cm-variable-2,
+:root[data-theme="light"] .cm-builtin {
+    color: #DB784D !important;
+}
+
+:root[data-theme="light"] .cm-string,
+:root[data-theme="light"] .cm-string-2 {
+    color: #F8BB39 !important;
+}
+
+:root[data-theme="light"] .cm-error {
+    color: #dc322f !important;
+    text-decoration: underline;
+}
+
+:root[data-theme="light"] .cm-nfqws-filter {
+    color: #60A365 !important;
+}
+
+:root[data-theme="light"] .cm-nfqws-new {
+    color: #95CC5E !important;
+    font-weight: 600;
+}
+
 /* Отключаем курсор текста для файлов, которые нельзя редактировать */
 .CodeMirror-readonly .CodeMirror-cursor {
     display: none !important;
@@ -782,6 +994,11 @@ footer {
 .footer-tab svg {
     width: 14px;
     height: 14px;
+}
+
+#syntax-toggle {
+    min-width: 90px;
+    justify-content: center;
 }
 
 /* Language Switcher */
@@ -1128,6 +1345,27 @@ body.changed #save {
     filter: brightness(0) invert(1);
 }
 
+/* Protected files - lock badge */
+.nav-tab.protected {
+    padding-right: 28px;
+}
+
+.nav-tab.protected::after {
+    content: '';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='3' y='11' width='18' height='10' rx='2' ry='2' stroke='%239AA0A6' stroke-width='2'/%3E%3Cpath d='M7 11V8a5 5 0 0 1 10 0v3' stroke='%239AA0A6' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='16' r='1' fill='%239AA0A6'/%3E%3C/svg%3E") no-repeat center;
+    opacity: 0.9;
+}
+
+.nav-tab.active.protected::after {
+    filter: brightness(0) invert(1);
+}
+
 /* List files - зеленые как раньше */
 .nav-tab[data-filename$=".list"],
 .nav-tab[data-filename*=".list-"] {
@@ -1152,7 +1390,6 @@ body.changed #save {
 .nav-tab[data-filename$=".log"] {
     padding-left: 32px;
     position: relative;
-    pointer-events: none;
 }
 
 .nav-tab[data-filename$=".log"]::before {
@@ -1353,6 +1590,16 @@ body.changed #save {
         padding: var(--space-xs) var(--space-sm);
         font-size: 12px;
         height: 36px;
+    }
+
+    .nav-add {
+        width: 36px;
+        height: 36px;
+    }
+
+    .nav-actions {
+        min-height: 36px;
+        padding: var(--space-xs);
     }
     
     .nav-tab[data-filename$=".conf"],

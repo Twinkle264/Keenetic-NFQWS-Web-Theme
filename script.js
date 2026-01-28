@@ -9,11 +9,26 @@ class UI {
         this.checkInProgress = false;
         this.historyManager = new HistoryManager();
         this.keyboardShortcuts = new KeyboardShortcuts(this);
+        this.protectedFiles = new Set([
+            'nfqws.conf',
+            'user.list',
+            'exclude.list',
+            'auto.list',
+            'ipset.list',
+            'ipset_exclude.list',
+            'nfqws.log'
+        ]);
+        this.syntaxMode = localStorage.getItem('syntaxMode') || 'nfqws';
+        this.filesSet = new Set();
+        this.addButton = null;
         
         this.init();
     }
 
     async init() {
+        if (!localStorage.getItem('theme')) {
+            localStorage.setItem('theme', 'dark');
+        }
         await this.loadTranslations();
         this.initCodeMirror();
         this.initUIComponents();
@@ -58,7 +73,8 @@ class UI {
 
     async loadTranslations() {
         try {
-            const response = await fetch(`lang/${this.currentLang}.json`);
+            const langBase = window.LANG_BASE || 'lang/';
+            const response = await fetch(`${langBase}${this.currentLang}.json`);
             this.translations = await response.json();
         } catch (error) {
             console.error('Error loading translations:', error);
@@ -79,12 +95,28 @@ class UI {
                 confirmUpdate: "Update nfqws-keenetic?",
                 confirmClose: "File has unsaved changes. Close anyway?",
                 confirmDelete: "Delete this file?",
+                confirmDeleteWithName: "Delete file {filename}?",
                 confirmClear: "Clear log file?",
                 yes: "Yes",
                 no: "No",
                 close: "Close",
                 cancel: "Cancel",
                 confirm: "Confirm",
+                createFile: "Create",
+                createFileTitle: "Create file",
+                createFilePlaceholder: "e.g. my.list",
+                fileNameRequired: "Enter a file name",
+                fileNameInvalid: "Invalid file name",
+                fileNameInvalidDetails: "Only Latin letters, numbers, dot, dash and underscore are allowed",
+                fileExtensionRequired: "Add a file extension",
+                fileNameReserved: "This file name is protected",
+                fileAlreadyExists: "File already exists",
+                failedToCreateFile: "Failed to create file",
+                deleteFile: "Delete file",
+                clearLog: "Clear log",
+                enterLoginPassword: "Please enter login and password",
+                loginFailed: "Login failed",
+                loginError: "Login error",
                 fileSaved: "File saved successfully",
                 fileDeleted: "File deleted successfully",
                 logCleared: "Log cleared successfully",
@@ -96,6 +128,12 @@ class UI {
                 error: "Error",
                 success: "Success",
                 processing: "Processing...",
+                unknownError: "Unknown error",
+                failedToLoadFile: "Failed to load file",
+                failedToSaveFile: "Failed to save file",
+                executingCommand: "Executing: nfqws-keenetic {action}",
+                protectedFile: "Protected file",
+                confirmDeleteFileType: "Delete file {filename}?",
                 statusRunning: "Running",
                 statusStopped: "Stopped",
                 themeLight: "Switch to light theme",
@@ -115,8 +153,13 @@ class UI {
                 domainAccessible: "Доступен",
                 domainBlocked: "Заблокирован",
                 noDomainsFound: "Домены не найдены в файле",
+                domainCheckError: "Ошибка проверки доменов",
                 selectListFile: "Выберите файл .list для проверки доменов",
-                checkingDomain: "Проверка {domain}..."
+                checkingInProgress: "Проверка...",
+                checkingDomain: "Проверка {domain}...",
+                syntaxCustom: "NFQWS",
+                syntaxShell: "Shell",
+                syntaxToggle: "Switch syntax highlighting"
             };
         }
     }
@@ -207,7 +250,9 @@ class UI {
         this.$tabs = document.querySelector('nav');
         this.initButtons();
         this.tabs = this.initTabs();
+        this.initAddFileButton();
         this.initPopups();
+        this.initCreateFilePopup();
         this.initLanguageSwitcher();
         this.initThemeSwitcher();
         this.initLoginForm();
@@ -251,6 +296,20 @@ class UI {
             document.getElementById('dropdown-menu').classList.add('hidden');
             this.confirmServiceAction('upgrade');
         });
+
+        // Syntax toggle
+        const syntaxToggle = document.getElementById('syntax-toggle');
+        if (syntaxToggle) {
+            syntaxToggle.addEventListener('click', () => {
+                document.getElementById('dropdown-menu').classList.add('hidden');
+                this.syntaxMode = this.syntaxMode === 'nfqws' ? 'shell' : 'nfqws';
+                localStorage.setItem('syntaxMode', this.syntaxMode);
+                this.updateSyntaxToggleUI();
+                if (this.currentFilename) {
+                    this.setEditorModeForFile(this.currentFilename);
+                }
+            });
+        }
         
         // Logout button
         document.getElementById('logout').addEventListener('click', async () => {
@@ -291,14 +350,15 @@ class UI {
             tab.textContent = filename;
 
             const isLog = filename.endsWith('.log');
-            const isConfig = filename.endsWith('.conf') || filename.includes('.conf-');
+            const isProtected = this.protectedFiles.has(filename);
             const isList = filename.endsWith('.list') || filename.includes('.list-');
+            const isConfOpkg = filename.includes('.conf-opkg');
 
-            if (isLog) {
+            if (isLog && isProtected) {
                 const clear = document.createElement('div');
                 clear.classList.add('nav-clear');
-                clear.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
-                clear.title = this.translations.confirmClear || "Clear log";
+                clear.innerHTML = '<svg width="12" height="12" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M 28.28125 2.28125 L 18.28125 12.28125 L 17 11 L 17 10.96875 L 16.96875 10.9375 C 16.328125 10.367188 15.492188 10.09375 14.6875 10.09375 C 13.882813 10.09375 13.105469 10.394531 12.5 11 L 12.34375 11.125 L 11.84375 11.625 L 11.5 11.90625 L 2.375 19 L 1.5 19.71875 L 12.28125 30.5 L 13 29.625 L 20.0625 20.5625 L 20.09375 20.59375 L 21.09375 19.59375 L 21.125 19.59375 L 21.15625 19.5625 C 22.296875 18.277344 22.304688 16.304688 21.09375 15.09375 L 19.71875 13.71875 L 29.71875 3.71875 Z M 14.6875 12.09375 C 14.996094 12.085938 15.335938 12.191406 15.59375 12.40625 C 15.605469 12.414063 15.613281 12.429688 15.625 12.4375 L 19.6875 16.5 C 20.0625 16.875 20.097656 17.671875 19.6875 18.1875 C 19.671875 18.207031 19.671875 18.230469 19.65625 18.25 L 19.34375 18.53125 L 13.5625 12.75 L 13.90625 12.40625 C 14.097656 12.214844 14.378906 12.101563 14.6875 12.09375 Z M 12.03125 14.03125 L 17.96875 19.96875 L 12.09375 27.46875 L 10.65625 26.03125 L 12.8125 23.78125 L 11.375 22.40625 L 9.25 24.625 L 7.9375 23.3125 L 11.8125 19.40625 L 10.40625 18 L 6.5 21.875 L 4.53125 19.90625 Z"/></svg>';
+                clear.title = this.translations.confirmClear || this.translations.clearLog;
 
                 clear.addEventListener('click', async (e) => {
                     e.stopPropagation();
@@ -317,26 +377,37 @@ class UI {
                 });
 
                 tab.appendChild(clear);
-            } else if (!isConfig && !isList) {
-                tab.classList.add('secondary');
+            }
+
+            if ((isLog && !isProtected) || (!isLog && !isProtected)) {
                 const trash = document.createElement('div');
                 trash.classList.add('nav-trash');
                 trash.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
-                trash.title = this.translations.confirmDelete || "Delete file";
+                trash.title = this.translations.confirmDelete || this.translations.deleteFile;
 
                 trash.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     if (!this.isAuthenticated) return;
-                    if (await this.showConfirm(this.translations.confirmDelete)) {
+                    const confirmDeleteText = this.translations.confirmDeleteWithName
+                        ? this.translations.confirmDeleteWithName.replace('{filename}', filename)
+                        : this.translations.confirmDelete;
+                    if (await this.showConfirm(confirmDeleteText, this.translations.confirm)) {
                         const result = await this.removeFile(filename);
                         if (!result.status) {
-                            this.removeTab(filename);
+                            this.tabs.remove(filename);
+                            this.filesSet.delete(filename);
                             this.showNotification(this.translations.fileDeleted, 'success');
                         }
                     }
                 });
 
                 tab.appendChild(trash);
+            } else if (!isLog) {
+                tab.classList.add('secondary');
+                if (isProtected) {
+                    tab.classList.add('protected');
+                    tab.title = this.translations.protectedFile || '';
+                }
             }
 
             tab.addEventListener('click', async () => {
@@ -408,7 +479,7 @@ class UI {
             const password = passwordInput.value;
             
             if (!user || !password) {
-                this.showNotification(this.translations.error + ': Please enter login and password', 'error');
+                this.showNotification(`${this.translations.error}: ${this.translations.enterLoginPassword}`, 'error');
                 return;
             }
             
@@ -428,11 +499,11 @@ class UI {
                     
                     await this.loadFiles();
                 } else {
-                    this.showNotification(this.translations.error + ': Login failed', 'error');
+                    this.showNotification(`${this.translations.error}: ${this.translations.loginFailed}`, 'error');
                     passwordInput.value = '';
                 }
             } catch (error) {
-                this.showNotification(this.translations.error + ': Login error', 'error');
+                this.showNotification(`${this.translations.error}: ${this.translations.loginError}`, 'error');
             }
         });
         
@@ -485,6 +556,20 @@ class UI {
         loginInput.focus();
         loginInput.value = '';
         document.getElementById('password').value = '';
+    }
+
+    initAddFileButton() {
+        const addButton = document.getElementById('add-file');
+        if (!addButton) return;
+        addButton.title = this.translations.createFile || 'Create file';
+        if (!addButton.dataset.bound) {
+            addButton.addEventListener('click', () => {
+                if (!this.isAuthenticated) return;
+                this.showCreateFilePopup();
+            });
+            addButton.dataset.bound = 'true';
+        }
+        this.addButton = addButton;
     }
 
     initPopups() {
@@ -554,7 +639,7 @@ class UI {
                     return;
                 }
                 
-                content.textContent = `${message}\n\n${this.translations.processing || 'Processing...'}`;
+                content.textContent = `${message}\n\n${this.translations.processing}`;
                 popupTitle.textContent = title || '';
                 popup.classList.remove('hidden');
                 popup.classList.add('alert', 'locked');
@@ -564,26 +649,105 @@ class UI {
                 try {
                     const result = await action();
                     if (result && !result.status) {
-                        content.textContent = `${message}\n\n✅ ${this.translations.success || 'Success'}!`;
+                        content.textContent = `${message}\n\n✅ ${this.translations.success}!`;
                         if (result.output) {
                             content.textContent += `\n${result.output.join('\n')}`;
                         }
                         resolve(true);
                     } else {
-                        content.textContent = `${message}\n\n❌ ${this.translations.error || 'Error'}: ${result ? result.status : 'Unknown error'}`;
+                        const unknownError = this.translations.unknownError;
+                        content.textContent = `${message}\n\n❌ ${this.translations.error}: ${result ? result.status : unknownError}`;
                         if (result && result.output) {
                             content.textContent += `\n${result.output.join('\n')}`;
                         }
                         resolve(false);
                     }
                 } catch (error) {
-                    content.textContent = `${message}\n\n❌ ${this.translations.error || 'Error'}: ${error.message}`;
+                    content.textContent = `${message}\n\n❌ ${this.translations.error}: ${error.message}`;
                     resolve(false);
                 } finally {
                     popup.classList.remove('locked');
                     isProcessing = false;
                 }
             });
+        };
+    }
+
+    initCreateFilePopup() {
+        const popup = document.getElementById('create-file');
+        const input = document.getElementById('create-file-name');
+        const title = document.getElementById('create-file-title');
+        const confirmBtn = document.getElementById('create-file-confirm');
+        const cancelBtn = document.getElementById('create-file-cancel');
+        const closeBtn = document.getElementById('create-file-close');
+
+        const closePopup = () => {
+            popup.classList.add('hidden');
+            document.body.classList.remove('disabled');
+        };
+
+        const submit = async () => {
+            if (!this.isAuthenticated) return;
+            const filename = input.value.trim();
+
+            if (!filename) {
+                this.showNotification(`${this.translations.error}: ${this.translations.fileNameRequired}`, 'error');
+                return;
+            }
+
+            if (!/^[A-Za-z0-9._-]+$/.test(filename) || filename.includes('..')) {
+                this.showNotification(`${this.translations.error}: ${this.translations.fileNameInvalidDetails}`, 'error');
+                return;
+            }
+
+            if (!/[^.]+\.[^.]+$/.test(filename)) {
+                this.showNotification(`${this.translations.error}: ${this.translations.fileExtensionRequired}`, 'error');
+                return;
+            }
+
+            if (this.protectedFiles.has(filename)) {
+                this.showNotification(`${this.translations.error}: ${this.translations.fileNameReserved}`, 'error');
+                return;
+            }
+
+            if (this.filesSet.has(filename)) {
+                this.showNotification(`${this.translations.error}: ${this.translations.fileAlreadyExists}`, 'error');
+                return;
+            }
+
+            const escaped = window.CSS && CSS.escape ? CSS.escape(filename) : filename.replace(/\"/g, '\\"');
+            if (this.$tabs.querySelector(`.nav-tab[data-filename="${escaped}"]`)) {
+                this.showNotification(`${this.translations.error}: ${this.translations.fileAlreadyExists}`, 'error');
+                return;
+            }
+
+            const result = await this.saveFile(filename, '');
+            if (result && !result.status) {
+                this.tabs.add(filename);
+                this.filesSet.add(filename);
+                await this.loadFile(filename);
+                closePopup();
+            } else {
+                this.showNotification(`${this.translations.error}: ${this.translations.failedToCreateFile}`, 'error');
+            }
+        };
+
+        confirmBtn.addEventListener('click', submit);
+        cancelBtn.addEventListener('click', closePopup);
+        closeBtn.addEventListener('click', closePopup);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submit();
+            }
+        });
+
+        this.showCreateFilePopup = () => {
+            title.textContent = this.translations.createFileTitle;
+            input.placeholder = this.translations.createFilePlaceholder;
+            input.value = '';
+            popup.classList.remove('hidden');
+            document.body.classList.add('disabled');
+            input.focus();
         };
     }
 
@@ -652,6 +816,10 @@ class UI {
         // Popup titles
         document.getElementById('login-title').textContent = this.translations.login;
         document.getElementById('login-button').textContent = this.translations.login;
+        document.getElementById('create-file-title').textContent = this.translations.createFileTitle;
+        document.getElementById('create-file-confirm').textContent = this.translations.createFile;
+        document.getElementById('create-file-cancel').textContent = this.translations.cancel;
+        document.getElementById('create-file-name').placeholder = this.translations.createFilePlaceholder;
         
         // Availability popup
         document.getElementById('availability-title').textContent = this.translations.checkingDomains || 'Проверка доступности доменов';
@@ -683,6 +851,14 @@ class UI {
         document.getElementById('logout').title = this.translations.logout;
         document.getElementById('language-switcher').title = this.translations.language;
         document.getElementById('check-availability').title = this.translations.checkAvailability || 'Проверить доступность доменов';
+        const addFileButton = document.getElementById('add-file');
+        if (addFileButton) addFileButton.title = this.translations.createFile;
+        const syntaxToggle = document.getElementById('syntax-toggle');
+        if (syntaxToggle) {
+            syntaxToggle.title = this.translations.syntaxToggle || 'Switch syntax highlighting';
+        }
+        this.updateStatusTooltip();
+        this.updateSyntaxToggleUI();
     }
 
     toggleTheme() {
@@ -772,7 +948,7 @@ class UI {
             
         } catch (error) {
             console.error('Error checking domains:', error);
-            this.showNotification('Ошибка проверки доменов: ' + error.message, 'error');
+            this.showNotification(`${this.translations.domainCheckError}: ${error.message}`, 'error');
             this.checkInProgress = false;
         }
     }
@@ -864,7 +1040,7 @@ class UI {
         const originalText = checkButton.querySelector('span').textContent;
         checkButton.disabled = true;
         checkButton.classList.add('disabled');
-        checkButton.querySelector('span').textContent = '⏳ Проверка...';
+        checkButton.querySelector('span').textContent = `⏳ ${this.translations.checkingInProgress}`;
         
         const checkPromises = domains.map(async (domain) => {
             try {
@@ -1036,6 +1212,7 @@ class UI {
             this.setStatus(response.service);
 
             if (response.files?.length) {
+                this.filesSet = new Set(response.files);
                 for (const filename of response.files) {
                     this.tabs.add(filename);
                 }
@@ -1057,7 +1234,7 @@ class UI {
         if (document.body.classList.contains('changed')) {
             const confirm = await this.showConfirm(
                 this.translations.confirmClose,
-                this.translations.confirm || 'Confirm'
+                this.translations.confirm
             );
             if (!confirm) return;
         }
@@ -1070,10 +1247,9 @@ class UI {
             this.editor.setValue(content);
             this.originalContent = content;
             
-            // Устанавливаем режим shell для всех файлов с .conf в названии
-            const isConfigFile = filename.includes('.conf') || filename.includes('.conf-');
-            this.editor.setOption('mode', isConfigFile ? 'shell' : 'text/plain');
-            this.editor.setOption('readOnly', filename.endsWith('.log'));
+            this.setEditorModeForFile(filename);
+            const isLogFile = filename.endsWith('.log');
+            this.editor.setOption('readOnly', isLogFile);
             
             document.body.classList.remove('changed');
             
@@ -1086,7 +1262,29 @@ class UI {
             this.editor.focus();
         } catch (error) {
             console.error('Error loading file:', error);
-            this.showNotification(`${this.translations.error}: Failed to load file`, 'error');
+            this.showNotification(`${this.translations.error}: ${this.translations.failedToLoadFile}`, 'error');
+        }
+    }
+
+    setEditorModeForFile(filename) {
+        const isConfigFile = filename.includes('.conf') || filename.includes('.conf-');
+        const isLogFile = filename.endsWith('.log');
+
+        if (this.syntaxMode === 'shell') {
+            if (isConfigFile) {
+                this.editor.setOption('mode', 'shell');
+            } else {
+                this.editor.setOption('mode', 'text/plain');
+            }
+            return;
+        }
+
+        if (isLogFile) {
+            this.editor.setOption('mode', 'text/x-nfqws-log');
+        } else if (isConfigFile) {
+            this.editor.setOption('mode', 'text/x-nfqws-conf');
+        } else {
+            this.editor.setOption('mode', 'text/plain');
         }
     }
 
@@ -1112,7 +1310,7 @@ class UI {
             }
         } catch (error) {
             console.error('Error saving file:', error);
-            this.showNotification(`${this.translations.error}: Failed to save file`, 'error');
+            this.showNotification(`${this.translations.error}: ${this.translations.failedToSaveFile}`, 'error');
         }
     }
 
@@ -1140,14 +1338,14 @@ class UI {
 
         const confirm = await this.showConfirm(
             confirmText,
-            this.translations.confirm || 'Confirm'
+            this.translations.confirm
         );
         if (!confirm) return;
 
         const success = await this.showProcessing(
-            `Executing: nfqws-keenetic ${action}`,
+            this.translations.executingCommand.replace('{action}', action),
             () => this.serviceActionRequest(action),
-            this.translations.processing || 'Processing'
+            this.translations.processing
         );
 
         if (success) {
@@ -1176,6 +1374,22 @@ class UI {
 
     setStatus(status) {
         document.body.classList.toggle('running', status);
+        this.updateStatusTooltip();
+    }
+
+    updateStatusTooltip() {
+        const statusDot = document.getElementById('status');
+        if (!statusDot) return;
+        const isRunning = document.body.classList.contains('running');
+        statusDot.title = isRunning ? (this.translations.statusRunning || 'Running') : (this.translations.statusStopped || 'Stopped');
+    }
+
+    updateSyntaxToggleUI() {
+        const syntaxText = document.getElementById('syntax-text');
+        if (!syntaxText) return;
+        syntaxText.textContent = this.syntaxMode === 'nfqws'
+            ? (this.translations.syntaxCustom || 'NFQWS')
+            : (this.translations.syntaxShell || 'Shell');
     }
 
     showNotification(message, type = 'success') {
