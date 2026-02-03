@@ -88,42 +88,6 @@
 
 <header>
     <h1 class="logo">
-        <!-- <svg class="logo-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path class="shield-base" d="M12 2L4 5V11C4 16.55 7.84 21.74 12 23C16.16 21.74 20 16.55 20 11V5L12 2Z" 
-                  fill="none" 
-                  stroke="#007AFF" 
-                  stroke-width="2" 
-                  stroke-linecap="round" 
-                  stroke-linejoin="round"/>
-            <path class="crack-main" d="M8 8L12 12L16 16" 
-                  fill="none" 
-                  stroke="#FF3B30" 
-                  stroke-width="2" 
-                  stroke-linecap="round"/>
-            <path class="crack-secondary" d="M16 8L12 12L8 16" 
-                  fill="none" 
-                  stroke="#FF3B30" 
-                  stroke-width="2" 
-                  stroke-linecap="round"/>
-            <line class="small-crack crack-1" x1="10" y1="6" x2="12" y2="8" 
-                  stroke="#FF9500" 
-                  stroke-width="1.5" 
-                  stroke-linecap="round"/>
-            <line class="small-crack crack-2" x1="14" y1="6" x2="12" y2="8" 
-                  stroke="#FF9500" 
-                  stroke-width="1.5" 
-                  stroke-linecap="round"/>
-            <line class="small-crack crack-3" x1="10" y1="18" x2="12" y2="16" 
-                  stroke="#FF9500" 
-                  stroke-width="1.5" 
-                  stroke-linecap="round"/>
-            <line class="small-crack crack-4" x1="14" y1="18" x2="12" y2="16" 
-                  stroke="#FF9500" 
-                  stroke-width="1.5" 
-                  stroke-linecap="round"/>
-            <circle class="fragment fragment-1" cx="7" cy="7" r="1" fill="#FF3B30" opacity="0.7"/>
-            <circle class="fragment fragment-2" cx="17" cy="17" r="1" fill="#FF3B30" opacity="0.7"/>
-        </svg> -->
         Keenetic NFQWS <span id="status"></span>
     </h1>
     <div class="header-controls">
@@ -147,7 +111,7 @@
         
         <!-- Dropdown меню - исправленная версия -->
         <div class="dropdown-container">
-            <button class="button" id="dropdown">
+            <button class="icon-button" id="dropdown">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M6 9l6 6 6-6"/>
                 </svg>
@@ -191,7 +155,7 @@
 <div class="nav-row">
     <nav></nav>
     <div class="nav-actions">
-        <button id="add-file" type="button" class="nav-add" title="Create file">
+        <button id="add-file" type="button" class="icon-button" title="Create file">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 5v14"/>
                 <path d="M5 12h14"/>
@@ -205,11 +169,22 @@
         <div class="editor-toolbar">
             <span class="filename" id="current-filename">No file selected</span>
             <div class="editor-actions">
+                <button class="button list-check hidden" id="check-list">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="9" y1="6" x2="21" y2="6"></line>
+                        <line x1="9" y1="12" x2="21" y2="12"></line>
+                        <line x1="9" y1="18" x2="21" y2="18"></line>
+                        <polyline points="3 6 4 7 6 5"></polyline>
+                        <polyline points="3 12 4 13 6 11"></polyline>
+                    </svg>
+                    <span id="check-list-text">Check lists</span>
+                </button>
                 <!-- Кнопка проверки доступности -->
                 <button class="button" id="check-availability">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <ellipse cx="12" cy="12" rx="4.5" ry="10"></ellipse>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
                     </svg>
                     <span id="check-availability-text">Check Availability</span>
                 </button>
@@ -264,6 +239,26 @@
             </svg>
             Theme
         </a>
+        <div class="footer-dropdown">
+            <span id="tools-toggle" class="footer-tab" title="Tools">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                </svg>
+                <span id="tools-label">Tools</span>
+            </span>
+            <ul id="tools-menu" class="dropdown-menu hidden">
+                <a class="dropdown-item" href="https://hyperion-cs.github.io/dpi-checkers/ru/tcp-16-20/" target="_blank" rel="noopener">
+                    DPI Checker
+                </a>
+                <a class="dropdown-item" href="https://github.com/whxtelxs/nfqws-zapret-converter" target="_blank" rel="noopener">
+                    Zapret to NFQWS
+                </a>
+                <a id="router-link" class="dropdown-item" href="#" target="_blank" rel="noopener">
+                    Router UI
+                </a>
+            </ul>
+        </div>
     </div>
     
     <div class="footer-right">
@@ -317,7 +312,7 @@
 <div id="alert" class="popup hidden">
     <div class="popup-header">
         <span class="popup-title" id="popup-title"></span>
-        <button class="popup-close-btn" title="Close">
+        <button class="popup-close-btn icon-button" title="Close">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -336,7 +331,7 @@
 <div id="availability-results" class="popup hidden">
     <div class="popup-header">
         <span class="popup-title" id="availability-title">Проверка доступности доменов</span>
-        <button class="popup-close-btn" title="Close">
+        <button class="popup-close-btn icon-button" title="Close">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -344,21 +339,21 @@
         </button>
     </div>
     <div class="popup-content" id="availability-content">
-        <div class="availability-stats">
+        <div class="availability-stats duplicates-stats">
             <div class="stat-item">
-                <span class="stat-label">Всего:</span>
+                <span class="stat-label" data-label="total">Всего:</span>
                 <span class="stat-value" id="total-domains">0</span>
             </div>
             <div class="stat-item">
-                <span class="stat-label">Доступны:</span>
+                <span class="stat-label" data-label="accessible">Доступны:</span>
                 <span class="stat-value accessible" id="accessible-domains">0</span>
             </div>
             <div class="stat-item">
-                <span class="stat-label">Заблокированы:</span>
+                <span class="stat-label" data-label="blocked">Заблокированы:</span>
                 <span class="stat-value blocked" id="blocked-domains">0</span>
             </div>
             <div class="stat-item">
-                <span class="stat-label">Прогресс:</span>
+                <span class="stat-label" data-label="progress">Прогресс:</span>
                 <span class="stat-value" id="progress">0%</span>
             </div>
         </div>
@@ -372,10 +367,92 @@
     </div>
 </div>
 
+<div id="duplicates-results" class="popup hidden">
+    <div class="popup-header">
+        <span class="popup-title" id="duplicates-title">Check lists</span>
+        <button class="popup-close-btn icon-button" id="duplicates-close-btn" title="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+    <div class="popup-content" id="duplicates-content">
+        <div class="availability-stats">
+            <div class="stat-item">
+                <span class="stat-label" id="duplicates-total-label">Lines:</span>
+                <span class="stat-value" id="duplicates-total">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label" id="duplicates-found-label">Duplicates:</span>
+                <span class="stat-value blocked" id="duplicates-found">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label" id="duplicates-files-label">Files:</span>
+                <span class="stat-value" id="duplicates-files">0</span>
+            </div>
+        </div>
+        <div class="duplicates-list" id="duplicates-list"></div>
+    </div>
+    <div class="popup-footer">
+        <button class="popup-close" id="duplicates-close">Close</button>
+    </div>
+</div>
+
+<div id="compare-results" class="compare-overlay hidden">
+    <div class="compare-panels compare-panels-desktop">
+        <div class="popup compare-panel">
+            <div class="popup-header">
+                <span class="filename" id="compare-left-name-desktop">current.list</span>
+            </div>
+            <div class="popup-content compare-content">
+                <div class="textarea-container">
+                    <textarea id="compare-left-content-desktop"></textarea>
+                </div>
+            </div>
+            <div class="popup-footer compare-footer">
+            </div>
+        </div>
+        <div class="popup compare-panel compare-panel-right">
+            <div class="popup-header">
+                <span class="filename" id="compare-right-name-desktop">duplicate.list</span>
+            </div>
+            <div class="popup-content compare-content">
+                <div class="textarea-container">
+                    <textarea id="compare-right-content-desktop"></textarea>
+                </div>
+            </div>
+            <div class="popup-footer compare-footer">
+                <button class="popup-yes" id="compare-save-right-desktop">Save</button>
+                <button class="popup-close" id="compare-close-desktop">Close</button>
+            </div>
+        </div>
+    </div>
+    <div class="compare-panels compare-panels-mobile">
+        <div class="popup compare-panel">
+            <div class="popup-header">
+                <div class="compare-name-switch">
+                    <span class="filename compare-name active" id="compare-left-name-mobile">current.list</span>
+                    <span class="filename compare-name" id="compare-right-name-mobile">duplicate.list</span>
+                </div>
+            </div>
+            <div class="popup-content compare-content">
+                <div class="textarea-container">
+                    <textarea id="compare-content-mobile"></textarea>
+                </div>
+            </div>
+            <div class="popup-footer compare-footer">
+                <button class="popup-yes" id="compare-save-mobile">Save</button>
+                <button class="popup-close" id="compare-close-mobile">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="login-form" class="popup hidden">
     <div class="popup-header">
         <span class="popup-title" id="login-title">Login</span>
-        <button class="popup-close-btn" title="Close">
+        <button class="popup-close-btn icon-button" title="Close">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -394,7 +471,7 @@
 <div id="create-file" class="popup hidden">
     <div class="popup-header">
         <span class="popup-title" id="create-file-title">Create file</span>
-        <button class="popup-close-btn" id="create-file-close" title="Close">
+        <button class="popup-close-btn icon-button" id="create-file-close" title="Close">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -409,50 +486,6 @@
         <button class="popup-no" id="create-file-cancel">Cancel</button>
     </div>
 </div>
-
-<script>
-    // JavaScript для анимации логотипа
-    document.addEventListener('DOMContentLoaded', function() {
-        const logo = document.querySelector('.logo-icon');
-        if (!logo) return;
-        
-        // Анимация пульсации всего логотипа
-        setInterval(() => {
-            logo.style.transform = 'scale(1.05)';
-            setTimeout(() => {
-                logo.style.transform = 'scale(1)';
-            }, 300);
-        }, 3000);
-        
-        // Анимация трещин
-        const cracks = document.querySelectorAll('.crack-main, .crack-secondary, .small-crack');
-        cracks.forEach((crack, index) => {
-            setInterval(() => {
-                crack.style.strokeOpacity = '1';
-                crack.style.strokeWidth = (parseFloat(crack.getAttribute('stroke-width')) + 0.5) + 'px';
-                
-                setTimeout(() => {
-                    crack.style.strokeOpacity = '0.7';
-                    crack.style.strokeWidth = crack.getAttribute('stroke-width') + 'px';
-                }, 500);
-            }, 2000 + index * 300);
-        });
-        
-        // Анимация фрагментов
-        const fragments = document.querySelectorAll('.fragment');
-        fragments.forEach((fragment, index) => {
-            setInterval(() => {
-                fragment.style.opacity = '1';
-                fragment.style.transform = `translate(${Math.random() * 2 - 1}px, ${Math.random() * 2 - 1}px)`;
-                
-                setTimeout(() => {
-                    fragment.style.opacity = '0.7';
-                    fragment.style.transform = 'translate(0, 0)';
-                }, 800);
-            }, 2500 + index * 500);
-        });
-    });
-</script>
 
 </body>
 </html>

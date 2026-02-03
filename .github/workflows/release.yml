@@ -1,0 +1,30 @@
+name: Build Release Asset
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build web archive
+        run: |
+          cd web
+          VERSION_NO_V="${GITHUB_REF_NAME#v}"
+          echo "VERSION_NO_V=${VERSION_NO_V}" >> "$GITHUB_ENV"
+          zip -r "../Keenetic-NFQWS-Web-Theme_${VERSION_NO_V}.zip" .
+          cd ..
+          sha256sum "Keenetic-NFQWS-Web-Theme_${VERSION_NO_V}.zip" > "Keenetic-NFQWS-Web-Theme_${VERSION_NO_V}.sha256"
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            Keenetic-NFQWS-Web-Theme_${{ env.VERSION_NO_V }}.zip
+            Keenetic-NFQWS-Web-Theme_${{ env.VERSION_NO_V }}.sha256

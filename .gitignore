@@ -1,10 +1,2 @@
-# Screenshots
-*.png
-*.jpg
-*.jpeg
-*.webp
-*.gif
-*.svg
-
 # Mock folder
 mock/
