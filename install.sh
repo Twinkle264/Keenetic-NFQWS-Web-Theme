@@ -45,10 +45,10 @@ get_latest_version() {
 }
 
 ensure_cmd wget wget-ssl
-ensure_cmd unzip unzip
+ensure_cmd tar tar
 
-if ! need_cmd wget || ! need_cmd unzip; then
-    echo "wget/unzip not found. Install them first (opkg install wget-ssl unzip)."
+if ! need_cmd wget || ! need_cmd tar; then
+    echo "wget/tar not found. Install them first (opkg install wget-ssl tar)."
     exit 1
 fi
 
@@ -63,7 +63,7 @@ fi
 
 VERSION_TAG="$VERSION"
 VERSION_NO_V="${VERSION#v}"
-ARCHIVE="Keenetic-NFQWS-Web-Theme_${VERSION_NO_V}.zip"
+ARCHIVE="Keenetic-NFQWS-Web-Theme_${VERSION_NO_V}.tar.gz"
 URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${VERSION_TAG}/${ARCHIVE}"
 
 TMP="/tmp/nfqws-web-install.$$"
@@ -77,7 +77,7 @@ if [ "$WITH_BACKUP" = "true" ] && [ -d "$TARGET" ]; then
     cp -a "$TARGET" "${TARGET}.bak" >/dev/null 2>&1 || true
 fi
 
-unzip -q "$ARCHIVE" -d "$TMP/unpacked"
+tar -xzf "$ARCHIVE" -C "$TMP/unpacked"
 cp -a "$TMP/unpacked/." "$TARGET/"
 
 cd /
