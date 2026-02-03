@@ -3,7 +3,7 @@ set -e
 
 REPO_OWNER="Twinkle264"
 REPO_NAME="Keenetic-NFQWS-Web-Theme"
-TARGET="/share/www/nfqws"
+TARGET="/opt/share/www/nfqws"
 
 VERSION=""
 WITH_BACKUP="false"
