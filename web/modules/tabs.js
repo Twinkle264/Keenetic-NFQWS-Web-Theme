@@ -80,7 +80,7 @@ export function applyTabs(UI) {
             };
 
             const bindTabDrag = (tab, filename) => {
-                if (filename === 'nfqws.conf') return;
+                if (filename === this.primaryConfigName) return;
                 tab.classList.add('draggable');
 
                 const startDrag = (e) => {
@@ -120,7 +120,7 @@ export function applyTabs(UI) {
                     }
                     const pointerX = e.clientX - parentRect.left + this.dom.tabs.scrollLeft;
                     const tabs = Array.from(this.dom.tabs.querySelectorAll('.nav-tab'))
-                        .filter((item) => item !== tab && item.dataset.filename !== 'nfqws.conf');
+                        .filter((item) => item !== tab && item.dataset.filename !== this.primaryConfigName);
                     let reference = null;
                     for (const sibling of tabs) {
                         const rect = sibling.getBoundingClientRect();
@@ -288,7 +288,7 @@ export function applyTabs(UI) {
 
         ensurePrimaryTabFirst() {
             if (!this.dom.tabs) return;
-            const firstTab = this.dom.tabs.querySelector('.nav-tab[data-filename=\"nfqws.conf\"]');
+            const firstTab = this.dom.tabs.querySelector(`.nav-tab[data-filename="${this.primaryConfigName}"]`);
             if (firstTab && firstTab.parentElement === this.dom.tabs) {
                 this.dom.tabs.insertBefore(firstTab, this.dom.tabs.firstChild);
             }

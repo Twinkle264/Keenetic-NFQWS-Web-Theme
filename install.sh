@@ -52,6 +52,12 @@ if ! need_cmd wget || ! need_cmd tar; then
     exit 1
 fi
 
+if [ ! -d "/opt" ] || [ ! -w "/opt" ]; then
+    echo "Entware (/opt) is not available or not writable."
+    echo "Please install/enable Entware and ensure /opt is mounted, then rerun this installer."
+    exit 1
+fi
+
 if [ -z "$VERSION" ]; then
     VERSION="$(get_latest_version)"
 fi

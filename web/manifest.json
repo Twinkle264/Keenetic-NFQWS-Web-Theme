@@ -1,7 +1,7 @@
 {
-  "name": "nfqws-keenetic",
-  "short_name": "nfqws-keenetic",
-  "description": "Modern web interface for nfqws-keenetic configuration with multi-language support",
+  "name": "NFQWS Web",
+  "short_name": "NFQWS Web",
+  "description": "Universal web interface for nfqws/nfqws2 configuration with multi-language support",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0a0a0a",

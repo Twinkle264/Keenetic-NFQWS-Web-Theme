@@ -2,38 +2,35 @@
 
 ini_set('memory_limit', '32M');
 
-define('ROOT_DIR', file_exists('/opt/etc/nfqws/nfqws.conf') ? '/opt' : '');
-define('SCRIPT_NAME', ROOT_DIR ? 'S51nfqws' : 'nfqws-keenetic');
+define('NFQWS2', file_exists('/opt/usr/bin/nfqws2') || file_exists('/usr/bin/nfqws2'));
+define('ROOT_DIR', (file_exists('/opt/usr/bin/nfqws2') || file_exists('/opt/usr/bin/nfqws')) ? '/opt' : '');
+const SCRIPT_NAME = ROOT_DIR ? (NFQWS2 ? 'S51nfqws2' : 'S51nfqws') : (NFQWS2 ? 'nfqws2-keenetic' : 'nfqws-keenetic');
+const CONF_DIR = NFQWS2 ? '/etc/nfqws2' : '/etc/nfqws';
+const LISTS_DIR = NFQWS2 ? '/etc/nfqws2/lists' : '/etc/nfqws';
+const LOG_FILE = NFQWS2 ? '/var/log/nfqws2.log' : '/var/log/nfqws.log';
 
-// Функция для получения версии nfqws-keenetic
+// Функция для получения версии пакета nfqws/nfqws2
 function getNfqwsVersion() {
-    $version = 'unknown';
-    
-    // Проверяем пакет opkg
-    exec("opkg list-installed | grep nfqws-keenetic", $output);
-    if (!empty($output)) {
-        foreach ($output as $line) {
-            if (preg_match('/nfqws-keenetic\s+-\s+([\d\.]+)/', $line, $matches)) {
-                $version = $matches[1];
-                break;
+    $version = '';
+    $pkg = NFQWS2 ? 'nfqws2-keenetic' : 'nfqws-keenetic';
+
+    if (file_exists('/usr/bin/opkg')) {
+        $output = null;
+        exec("opkg status {$pkg} | awk -F': ' '/^Version:/ {print $2}'", $output);
+        $version = $output[0] ?? '';
+    }
+
+    if (empty($version) && (file_exists('/sbin/apk') || file_exists('/usr/bin/apk'))) {
+        $output = null;
+        exec("apk info {$pkg} 2>/dev/null | head -n 1", $output);
+        if (!empty($output[0])) {
+            if (preg_match('/' . preg_quote($pkg, '/') . '-([0-9][0-9a-zA-Z\.\-\+~]*)/', $output[0], $matches)) {
+                $version = $matches[1] ?? '';
             }
         }
     }
-    
-    // Проверяем пакет apk
-    if ($version === 'unknown') {
-        exec("apk list --installed | grep nfqws-keenetic", $output);
-        if (!empty($output)) {
-            foreach ($output as $line) {
-                if (preg_match('/nfqws-keenetic-([\d\.]+)/', $line, $matches)) {
-                    $version = $matches[1];
-                    break;
-                }
-            }
-        }
-    }
-    
-    return $version;
+
+    return $version ?: 'unknown';
 }
 
 function normalizeString(string $s): string {
@@ -51,38 +48,80 @@ function normalizeString(string $s): string {
     return $s;
 }
 
-function getFiles($path = ROOT_DIR . '/etc/nfqws'): array {
+function getFiles(): array {
     // GLOB_BRACE is unsupported in openwrt
-    $files = array_filter(glob($path . '/*'), function ($file) {
-        return is_file($file) && preg_match('/\.(list|list-opkg|list-old|conf|conf-opkg|conf-old|apk-new)$/i', $file);
-    });
-    $logfile = ROOT_DIR . '/var/log/nfqws.log';
-    $basenames = array_map(fn($file) => basename($file), $files);
+    $basenames = [];
+
+    if (NFQWS2) {
+        $lists = array_filter(glob(ROOT_DIR . LISTS_DIR . '/*'), function ($file) {
+            return is_file($file) && preg_match('/\.(list|list-opkg|list-old)$/i', $file);
+        });
+        $basenames = array_map(fn($file) => basename($file), $lists);
+
+        $confs = array_filter(glob(ROOT_DIR . CONF_DIR . '/*'), function ($file) {
+            return is_file($file) && preg_match('/\.(conf|conf-opkg|conf-old|apk-new)$/i', $file);
+        });
+        $basenames = array_merge($basenames, array_map(fn($file) => basename($file), $confs));
+    } else {
+        $files = array_filter(glob(ROOT_DIR . CONF_DIR . '/*'), function ($file) {
+            return is_file($file) && preg_match('/\.(list|list-opkg|list-old|conf|conf-opkg|conf-old|apk-new)$/i', $file);
+        });
+        $basenames = array_map(fn($file) => basename($file), $files);
+    }
+
+    $logfile = ROOT_DIR . LOG_FILE;
     if (file_exists($logfile)) {
         array_push($basenames, basename($logfile));
     }
 
-    $priority = ['nfqws.conf' => -7, 'user.list' => -6, 'exclude.list' => -5, 'auto.list' => -4, 'ipset.list' => -3, 'ipset_exclude.list' => -2, 'nfqws.log' => -1];
+    $priority = [
+        'nfqws2.conf' => -7,
+        'nfqws.conf' => -7,
+        'user.list' => -6,
+        'exclude.list' => -5,
+        'auto.list' => -4,
+        'ipset.list' => -3,
+        'ipset_exclude.list' => -2,
+        basename(LOG_FILE) => -1
+    ];
     usort($basenames, fn($a, $b) => ($priority[$a] ?? 1) - ($priority[$b] ?? -1));
 
     return $basenames;
 }
 
-function getFileContent(string $filename, $path = ROOT_DIR . '/etc/nfqws'): string {
-    return file_get_contents($path . '/' . basename($filename));
+function getFileContent(string $filename): string {
+    $filename = basename($filename);
+    if (NFQWS2 && preg_match('/\.(list|list-opkg|list-old)$/i', $filename)) {
+        return file_get_contents(ROOT_DIR . LISTS_DIR . '/' . $filename);
+    }
+    return file_get_contents(ROOT_DIR . CONF_DIR . '/' . $filename);
 }
 
-function getLogContent(string $filename, $path = ROOT_DIR . '/var/log'): string {
-    $file = file($path . '/' . basename($filename));
+function getLogContent(string $filename): string {
+    $file = file(ROOT_DIR . LOG_FILE);
     $file = array_reverse($file);
     return implode("", $file);
 }
 
-function saveFile(string $filename, string $content, $path = ROOT_DIR . '/etc/nfqws') {
+function saveFile(string $filename, string $content) {
     $filename = basename($filename);
-    $file = $path . '/' . $filename;
+    if (preg_match('/\.(log)$/i', $filename)) {
+        $file = ROOT_DIR . LOG_FILE;
+    } elseif (NFQWS2 && preg_match('/\.(list|list-opkg|list-old)$/i', $filename)) {
+        $file = ROOT_DIR . LISTS_DIR . '/' . $filename;
+    } else {
+        $file = ROOT_DIR . CONF_DIR . '/' . $filename;
+    }
 
-    $protected = ['nfqws.conf', 'user.list', 'exclude.list', 'auto.list', 'ipset.list', 'ipset_exclude.list', 'nfqws.log'];
+    $protected = [
+        NFQWS2 ? 'nfqws2.conf' : 'nfqws.conf',
+        'user.list',
+        'exclude.list',
+        'auto.list',
+        'ipset.list',
+        'ipset_exclude.list',
+        basename(LOG_FILE)
+    ];
     if (!file_exists($file) && in_array($filename, $protected, true)) {
         return false;
     }
@@ -90,14 +129,26 @@ function saveFile(string $filename, string $content, $path = ROOT_DIR . '/etc/nf
     return file_put_contents($file, normalizeString($content)) !== false;
 }
 
-function saveLog(string $filename, string $content, $path = ROOT_DIR . '/var/log') {
-    return saveFile($filename, $content, $path);
+function saveLog(string $filename, string $content) {
+    return saveFile($filename, $content);
 }
 
-function removeFile(string $filename, $path = ROOT_DIR . '/etc/nfqws') {
+function removeFile(string $filename) {
     $filename = basename($filename);
-    $file = $path . '/' . $filename;
-    $protected = ['nfqws.conf', 'user.list', 'exclude.list', 'auto.list', 'ipset.list', 'ipset_exclude.list', 'nfqws.log'];
+    if (NFQWS2 && preg_match('/\.(list|list-opkg|list-old)$/i', $filename)) {
+        $file = ROOT_DIR . LISTS_DIR . '/' . $filename;
+    } else {
+        $file = ROOT_DIR . CONF_DIR . '/' . $filename;
+    }
+    $protected = [
+        NFQWS2 ? 'nfqws2.conf' : 'nfqws.conf',
+        'user.list',
+        'exclude.list',
+        'auto.list',
+        'ipset.list',
+        'ipset_exclude.list',
+        basename(LOG_FILE)
+    ];
     if (in_array($filename, $protected, true)) {
         return false;
     }
@@ -124,7 +175,11 @@ function nfqwsServiceAction(string $action) {
 function opkgUpgradeAction() {
     $output = null;
     $retval = null;
-    exec("opkg update && opkg upgrade nfqws-keenetic nfqws-keenetic-web", $output, $retval);
+    if (NFQWS2) {
+        exec("opkg update && opkg upgrade nfqws2-keenetic nfqws-keenetic-web", $output, $retval);
+    } else {
+        exec("opkg update && opkg upgrade nfqws-keenetic nfqws-keenetic-web", $output, $retval);
+    }
     if (empty($output)) {
         $output[] = 'Nothing to update';
     }
@@ -134,7 +189,11 @@ function opkgUpgradeAction() {
 function apkUpgradeAction() {
     $output = null;
     $retval = null;
-    exec("apk --update-cache add nfqws-keenetic nfqws-keenetic-web", $output, $retval);
+    if (NFQWS2) {
+        exec("apk --update-cache add nfqws2-keenetic nfqws-keenetic-web", $output, $retval);
+    } else {
+        exec("apk --update-cache add nfqws-keenetic nfqws-keenetic-web", $output, $retval);
+    }
     if (empty($output)) {
         $output[] = 'Nothing to update';
     }
@@ -185,7 +244,13 @@ function main() {
     switch ($_POST['cmd']) {
         case 'filenames':
             $files = getFiles();
-            $response = array('status' => 0, 'files' => $files, 'service' => nfqwsServiceStatus());
+            $response = array(
+                'status' => 0,
+                'files' => $files,
+                'service' => nfqwsServiceStatus(),
+                'nfqws2' => NFQWS2,
+                'version' => getNfqwsVersion()
+            );
             break;
 
         case 'filecontent':
@@ -234,7 +299,7 @@ function main() {
             break;
 
         case 'getversion':
-            $response = array('status' => 0, 'version' => getNfqwsVersion());
+            $response = array('status' => 0, 'version' => getNfqwsVersion(), 'nfqws2' => NFQWS2);
             break;
 
         default:

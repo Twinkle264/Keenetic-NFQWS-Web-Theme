@@ -21,7 +21,7 @@ export function applyService(UI) {
                 'upgrade': this.translations.upgradeCompleted
             };
 
-            const confirmText = confirmTexts[action];
+            const confirmText = this.formatServiceText(confirmTexts[action]);
             if (!confirmText) return;
 
             const confirmResult = await this.showConfirm(
@@ -31,7 +31,7 @@ export function applyService(UI) {
             if (!confirmResult) return;
 
             const successResult = await this.showProcessing(
-                this.translations.executingCommand.replace('{action}', action),
+                this.formatServiceText(this.translations.executingCommand).replace('{action}', action),
                 () => this.serviceActionRequest(action),
                 this.translations.processing
             );
@@ -52,7 +52,7 @@ export function applyService(UI) {
                     // Обновляем версию в футере
                     const result = await this.postData({ cmd: 'getversion' });
                     if (result && result.status === 0 && result.version) {
-                        this.dom.version.textContent = `v${result.version}`;
+                        this.version?.setCurrent?.(`v${result.version}`, result.nfqws2);
                     }
                     
                     setTimeout(() => window.location.reload(), 2000);

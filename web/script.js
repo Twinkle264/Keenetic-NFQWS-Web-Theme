@@ -32,15 +32,11 @@ class UI {
         this.listDuplicateTimer = null;
         this.historyManager = new HistoryManager();
         this.keyboardShortcuts = new KeyboardShortcuts(this);
-        this.protectedFiles = new Set([
-            'nfqws.conf',
-            'user.list',
-            'exclude.list',
-            'auto.list',
-            'ipset.list',
-            'ipset_exclude.list',
-            'nfqws.log'
-        ]);
+        this.isNfqws2 = false;
+        this.serviceName = 'nfqws-keenetic';
+        this.primaryConfigName = 'nfqws.conf';
+        this.logFileName = 'nfqws.log';
+        this.protectedFiles = new Set(this.getDefaultProtectedFiles());
         this.syntaxMode = localStorage.getItem(STORAGE_KEYS.syntaxMode) || 'nfqws';
         this.filesSet = new Set();
         this.addButton = null;
@@ -95,7 +91,7 @@ class UI {
                 confirmReload: "Reload service?",
                 confirmStop: "Stop service?",
                 confirmStart: "Start service?",
-                confirmUpdate: "Update nfqws-keenetic?",
+                confirmUpdate: "Update {serviceName}?",
                 confirmClose: "File has unsaved changes. Close anyway?",
                 confirmDelete: "Delete this file?",
                 confirmDeleteWithName: "Delete file {filename}?",
@@ -134,7 +130,7 @@ class UI {
                 unknownError: "Unknown error",
                 failedToLoadFile: "Failed to load file",
                 failedToSaveFile: "Failed to save file",
-                executingCommand: "Executing: nfqws-keenetic {action}",
+                executingCommand: "Executing: {serviceName} {action}",
                 protectedFile: "Protected file",
                 confirmDeleteFileType: "Delete file {filename}?",
                 statusRunning: "Running",
@@ -202,6 +198,7 @@ class UI {
             root: document.documentElement,
             tabs: document.querySelector('nav'),
             editorContainer: document.querySelector('.editor-container'),
+            serviceName: byId('service-name'),
             save: byId('save'),
             restart: byId('restart'),
             dropdown: byId('dropdown'),
@@ -283,6 +280,8 @@ class UI {
             compareLeftContentDesktop: byId('compare-left-content-desktop'),
             compareRightContentDesktop: byId('compare-right-content-desktop'),
             compareContentMobile: byId('compare-content-mobile'),
+            githubLink: byId('github-link'),
+            repoLink: byId('repo-link'),
             theme: byId('theme'),
             languageSwitcher: byId('language-switcher'),
             syntaxToggle: byId('syntax-toggle'),
@@ -421,6 +420,49 @@ class UI {
     }
 
     // === File Helpers ===
+    getDefaultProtectedFiles() {
+        return [
+            this.primaryConfigName,
+            'user.list',
+            'exclude.list',
+            'auto.list',
+            'ipset.list',
+            'ipset_exclude.list',
+            this.logFileName
+        ];
+    }
+
+    updateServiceMeta(meta = {}) {
+        const nfqws2 = !!meta.nfqws2;
+        this.isNfqws2 = nfqws2;
+        this.serviceName = nfqws2 ? 'nfqws2-keenetic' : 'nfqws-keenetic';
+        this.primaryConfigName = nfqws2 ? 'nfqws2.conf' : 'nfqws.conf';
+        this.logFileName = nfqws2 ? 'nfqws2.log' : 'nfqws.log';
+        this.protectedFiles = new Set(this.getDefaultProtectedFiles());
+        if (this.dom.serviceName) {
+            this.dom.serviceName.textContent = nfqws2 ? 'Keenetic NFQWS2' : 'Keenetic NFQWS';
+        }
+        if (this.dom.githubLink) {
+            if (nfqws2) {
+                this.dom.githubLink.href = 'https://github.com/nfqws/nfqws2-keenetic/';
+            } else {
+                this.dom.githubLink.href = 'https://github.com/Anonym-tsk/nfqws-keenetic/';
+            }
+        }
+        if (this.dom.repoLink) {
+            if (nfqws2) {
+                this.dom.repoLink.href = 'https://nfqws.github.io/nfqws2-keenetic/';
+            } else {
+                this.dom.repoLink.href = 'https://anonym-tsk.github.io/nfqws-keenetic/';
+            }
+        }
+    }
+
+    formatServiceText(text) {
+        if (!text) return text;
+        return text.replace('{serviceName}', this.serviceName);
+    }
+
     async confirmDiscardChanges() {
         if (!document.body.classList.contains(CLASSNAMES.changed)) return true;
         return await this.showConfirm(

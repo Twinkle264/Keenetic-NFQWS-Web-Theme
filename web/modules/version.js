@@ -16,10 +16,23 @@ export function applyVersion(UI) {
 
         initVersion() {
             const element = this.dom.version;
+            let match = null;
+            let isNfqws2 = false;
 
             const value = () => {
-                const match = element?.textContent?.match(/^v([0-9]+)\.([0-9]+)\.([0-9]+)$/);
                 return match ? [match[1], match[2], match[3]] : null;
+            };
+
+            const setCurrent = (version, nfqws2) => {
+                isNfqws2 = !!nfqws2;
+                if (element) {
+                    element.textContent = version;
+                    const existingLink = element.querySelector('a');
+                    if (existingLink) {
+                        existingLink.remove();
+                    }
+                }
+                match = String(version || '').match(/^v([0-9]+)\.([0-9]+)\.([0-9]+)$/);
             };
 
             const checkUpdate = async () => {
@@ -27,17 +40,23 @@ export function applyVersion(UI) {
                     return;
                 }
 
-                const latest = await this.getLatestVersion();
+                const latest = await this.getLatestVersion(isNfqws2);
                 if (!latest) {
                     return;
                 }
 
                 const updateAvailable = this.compareVersions(value(), latest);
                 if (updateAvailable && element) {
+                    const existingLink = element.querySelector('a');
+                    if (existingLink) {
+                        existingLink.remove();
+                    }
                     const link = document.createElement('a');
                     const tag = `v${latest[0]}.${latest[1]}.${latest[2]}`;
                     link.textContent = `(${tag})`;
-                    link.href = `https://github.com/Anonym-tsk/nfqws-keenetic/releases/tag/${tag}`;
+                    link.href = isNfqws2
+                        ? `https://github.com/nfqws/nfqws2-keenetic/releases/tag/${tag}`
+                        : `https://github.com/Anonym-tsk/nfqws-keenetic/releases/tag/${tag}`;
                     link.target = '_blank';
                     link.rel = 'noopener';
                     element.appendChild(link);
@@ -48,6 +67,7 @@ export function applyVersion(UI) {
                 get value() {
                     return value();
                 },
+                setCurrent,
                 checkUpdate,
             };
 
@@ -60,7 +80,7 @@ export function applyVersion(UI) {
             try {
                 const response = await this.postData({ cmd: 'getversion' });
                 if (response && response.status === 0 && response.version) {
-                    this.dom.version.textContent = `v${response.version}`;
+                    this.version?.setCurrent?.(`v${response.version}`, response.nfqws2);
                     await this.version?.checkUpdate?.();
                 } else {
                     this.dom.version.textContent = 'vunknown';
@@ -70,7 +90,7 @@ export function applyVersion(UI) {
             }
         },
 
-        async getLatestVersion() {
+        async getLatestVersion(nfqws2 = false) {
             if (typeof window !== 'undefined' && window.MOCK_UPDATE_VERSION) {
                 const match = String(window.MOCK_UPDATE_VERSION).match(/^([0-9]+)\.([0-9]+)\.([0-9]+)$/);
                 if (match) {
@@ -78,7 +98,10 @@ export function applyVersion(UI) {
                 }
             }
             try {
-                const response = await fetch('https://api.github.com/repos/Anonym-tsk/nfqws-keenetic/releases/latest');
+                const url = nfqws2
+                    ? 'https://api.github.com/repos/nfqws/nfqws2-keenetic/releases/latest'
+                    : 'https://api.github.com/repos/Anonym-tsk/nfqws-keenetic/releases/latest';
+                const response = await fetch(url);
                 const data = await response.json();
                 const tag = data.tag_name;
                 const match = tag.match(/^v([0-9]+)\.([0-9]+)\.([0-9]+)$/);

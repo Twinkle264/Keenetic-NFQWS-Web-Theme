@@ -3,7 +3,12 @@ export function applyFiles(UI) {
         async loadFiles() {
             try {
                 const response = await this.getFiles();
+                this.updateServiceMeta(response || {});
                 this.setStatus(response.service);
+                if (response && response.version && this.version?.setCurrent) {
+                    this.version.setCurrent(`v${response.version}`, response.nfqws2);
+                    await this.version.checkUpdate?.();
+                }
 
                 if (response.files?.length) {
                     const orderedFiles = this.applyTabsOrder(response.files);
