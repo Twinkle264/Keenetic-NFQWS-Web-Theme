@@ -3,7 +3,7 @@ set -e
 
 REPO_OWNER="Twinkle264"
 REPO_NAME="Keenetic-NFQWS-Web-Theme"
-TARGET="/opt/share/www/nfqws"
+TARGET=""
 
 VERSION=""
 WITH_BACKUP="false"
@@ -52,10 +52,15 @@ if ! need_cmd wget || ! need_cmd tar; then
     exit 1
 fi
 
-if [ ! -d "/opt" ] || [ ! -w "/opt" ]; then
-    echo "Entware (/opt) is not available or not writable."
-    echo "Please install/enable Entware and ensure /opt is mounted, then rerun this installer."
-    exit 1
+if [ -d "/opt" ] && [ -w "/opt" ]; then
+    TARGET="/opt/share/www/nfqws"
+else
+    TARGET="/share/www/nfqws"
+    if [ ! -d "/share" ] || [ ! -w "/share" ]; then
+        echo "Neither /opt nor /share is available or writable."
+        echo "Please install/enable Entware or ensure OpenWrt /share is writable, then rerun this installer."
+        exit 1
+    fi
 fi
 
 if [ -z "$VERSION" ]; then
