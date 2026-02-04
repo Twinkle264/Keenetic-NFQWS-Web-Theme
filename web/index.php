@@ -161,12 +161,11 @@ function getFiles(): array {
         });
         $basenames = array_map(fn($file) => basename($file), $files);
 
-        $extraListsDir = '/opt/etc/nfqws';
-        if (is_dir($extraListsDir)) {
-            $extraLists = array_filter(glob($extraListsDir . '/*.list'), function ($file) {
-                return is_file($file);
-            });
-            $basenames = array_merge($basenames, array_map(fn($file) => basename($file), $extraLists));
+        $optLists = array_filter(glob('/opt/etc/nfqws/lists/*.list'), function ($file) {
+            return is_file($file);
+        });
+        if (!empty($optLists)) {
+            $basenames = array_merge($basenames, array_map(fn($file) => basename($file), $optLists));
         }
     }
 
@@ -174,8 +173,6 @@ function getFiles(): array {
     if (file_exists($logfile)) {
         array_push($basenames, basename($logfile));
     }
-
-    $basenames = array_values(array_unique($basenames));
 
     $priority = [
         'nfqws2.conf' => -7,
@@ -187,6 +184,7 @@ function getFiles(): array {
         'ipset_exclude.list' => -2,
         $paths['log_name'] => -1
     ];
+    $basenames = array_values(array_unique($basenames));
     usort($basenames, fn($a, $b) => ($priority[$a] ?? 1) - ($priority[$b] ?? -1));
 
     return $basenames;
@@ -196,14 +194,14 @@ function getFileContent(string $filename): string {
     $version = getSelectedVersion();
     $paths = getPaths($version);
     $filename = basename($filename);
+    if ($version === 'nfqws' && preg_match('/\.list$/i', $filename)) {
+        $optList = '/opt/etc/nfqws/lists/' . $filename;
+        if (file_exists($optList)) {
+            return file_get_contents($optList);
+        }
+    }
     if ($version === 'nfqws2' && preg_match('/\.(list|list-opkg|list-old)$/i', $filename)) {
         return file_get_contents(ROOT_DIR . $paths['lists_dir'] . '/' . $filename);
-    }
-    if ($version === 'nfqws' && preg_match('/\.(list|list-opkg|list-old)$/i', $filename)) {
-        $extraListFile = '/opt/etc/nfqws/' . $filename;
-        if (file_exists($extraListFile)) {
-            return file_get_contents($extraListFile);
-        }
     }
     return file_get_contents(ROOT_DIR . $paths['conf_dir'] . '/' . $filename);
 }
@@ -222,15 +220,15 @@ function saveFile(string $filename, string $content) {
     $filename = basename($filename);
     if (preg_match('/\.(log)$/i', $filename)) {
         $file = ROOT_DIR . $paths['log_file'];
-    } elseif ($version === 'nfqws2' && preg_match('/\.(list|list-opkg|list-old)$/i', $filename)) {
-        $file = ROOT_DIR . $paths['lists_dir'] . '/' . $filename;
-    } elseif ($version === 'nfqws' && preg_match('/\.(list|list-opkg|list-old)$/i', $filename)) {
-        $extraListFile = '/opt/etc/nfqws/' . $filename;
-        if (file_exists($extraListFile)) {
-            $file = $extraListFile;
+    } elseif ($version === 'nfqws' && preg_match('/\.list$/i', $filename)) {
+        $optList = '/opt/etc/nfqws/lists/' . $filename;
+        if (file_exists($optList)) {
+            $file = $optList;
         } else {
             $file = ROOT_DIR . $paths['conf_dir'] . '/' . $filename;
         }
+    } elseif ($version === 'nfqws2' && preg_match('/\.(list|list-opkg|list-old)$/i', $filename)) {
+        $file = ROOT_DIR . $paths['lists_dir'] . '/' . $filename;
     } else {
         $file = ROOT_DIR . $paths['conf_dir'] . '/' . $filename;
     }
@@ -259,17 +257,16 @@ function removeFile(string $filename) {
     $version = getSelectedVersion();
     $paths = getPaths($version);
     $filename = basename($filename);
+    if ($version === 'nfqws' && preg_match('/\.list$/i', $filename)) {
+        $optList = '/opt/etc/nfqws/lists/' . $filename;
+        if (file_exists($optList)) {
+            $file = $optList;
+        }
+    }
     if ($version === 'nfqws2' && preg_match('/\.(list|list-opkg|list-old)$/i', $filename)) {
         $file = ROOT_DIR . $paths['lists_dir'] . '/' . $filename;
-    } elseif ($version === 'nfqws' && preg_match('/\.(list|list-opkg|list-old)$/i', $filename)) {
-        $extraListFile = '/opt/etc/nfqws/' . $filename;
-        if (file_exists($extraListFile)) {
-            $file = $extraListFile;
-        } else {
-            $file = ROOT_DIR . $paths['conf_dir'] . '/' . $filename;
-        }
     } else {
-        $file = ROOT_DIR . $paths['conf_dir'] . '/' . $filename;
+        $file = $file ?? (ROOT_DIR . $paths['conf_dir'] . '/' . $filename);
     }
     $protected = [
         $paths['primary_conf'],
@@ -379,20 +376,32 @@ function switchVersion(string $target): array {
 }
 
 function authenticate($username, $password) {
+    if ($username === '' || $username === null) {
+        return false;
+    }
+
     $passwdFile = ROOT_DIR . '/etc/passwd';
     $shadowFile = ROOT_DIR . '/etc/shadow';
+    $sourceFile = is_readable($shadowFile) ? $shadowFile : $passwdFile;
 
-    $users = file(file_exists($shadowFile) ? $shadowFile : $passwdFile);
-    $user = preg_grep("/^$username/", $users);
+    $users = @file($sourceFile, FILE_IGNORE_NEW_LINES);
+    if ($users === false) {
+        return false;
+    }
 
-    if ($user) {
-        list(, $passwdInDB) = explode(':', array_pop($user));
-        if (empty($passwdInDB)) {
-            return empty($password);
+    $prefix = $username . ':';
+    $prefixLen = strlen($prefix);
+
+    foreach ($users as $line) {
+        if (strncmp($line, $prefix, $prefixLen) !== 0) {
+            continue;
         }
-        if (crypt($password, $passwdInDB) == $passwdInDB) {
-            return true;
+        $parts = explode(':', $line, 3);
+        $passwdInDB = $parts[1] ?? '';
+        if ($passwdInDB === '') {
+            return $password === '';
         }
+        return crypt($password, $passwdInDB) === $passwdInDB;
     }
 
     return false;
