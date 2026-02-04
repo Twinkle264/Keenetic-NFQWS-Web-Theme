@@ -14,15 +14,33 @@ function getNfqwsVersion() {
     $version = '';
     $pkg = NFQWS2 ? 'nfqws2-keenetic' : 'nfqws-keenetic';
 
-    if (file_exists('/usr/bin/opkg')) {
+    $opkg = null;
+    if (file_exists('/opt/bin/opkg')) {
+        $opkg = '/opt/bin/opkg';
+    } elseif (file_exists('/usr/bin/opkg')) {
+        $opkg = '/usr/bin/opkg';
+    }
+
+    if ($opkg) {
         $output = null;
-        exec("opkg status {$pkg} | awk -F': ' '/^Version:/ {print $2}'", $output);
+        exec("{$opkg} status {$pkg} | awk -F': ' '/^Version:/ {print $2}'", $output);
         $version = $output[0] ?? '';
     }
 
-    if (empty($version) && (file_exists('/sbin/apk') || file_exists('/usr/bin/apk'))) {
+    $apk = null;
+    if (file_exists('/sbin/apk')) {
+        $apk = '/sbin/apk';
+    } elseif (file_exists('/usr/bin/apk')) {
+        $apk = '/usr/bin/apk';
+    } elseif (file_exists('/opt/sbin/apk')) {
+        $apk = '/opt/sbin/apk';
+    } elseif (file_exists('/opt/bin/apk')) {
+        $apk = '/opt/bin/apk';
+    }
+
+    if (empty($version) && $apk) {
         $output = null;
-        exec("apk info {$pkg} 2>/dev/null | head -n 1", $output);
+        exec("{$apk} info {$pkg} 2>/dev/null | head -n 1", $output);
         if (!empty($output[0])) {
             if (preg_match('/' . preg_quote($pkg, '/') . '-([0-9][0-9a-zA-Z\.\-\+~]*)/', $output[0], $matches)) {
                 $version = $matches[1] ?? '';
