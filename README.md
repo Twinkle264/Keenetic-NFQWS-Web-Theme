@@ -72,17 +72,22 @@
 
   Последняя версия:
   ```sh
-  wget -qO /tmp/install-nfqws-web.sh https://raw.githubusercontent.com/Twinkle264/Keenetic-NFQWS-Web-Theme/main/install.sh && sh /tmp/install-nfqws-web.sh
+  wget -qO-  https://raw.githubusercontent.com/Twinkle264/Keenetic-NFQWS-Web-Theme/main/install.sh | sh 
   ```
 
   С резервной копией:
   ```sh
-  wget -qO /tmp/install-nfqws-web.sh https://raw.githubusercontent.com/Twinkle264/Keenetic-NFQWS-Web-Theme/main/install.sh && sh /tmp/install-nfqws-web.sh --backup
+  wget -qO- https://raw.githubusercontent.com/Twinkle264/Keenetic-NFQWS-Web-Theme/main/install.sh | sh -s -- --backup
   ```
 
   Конкретная версия:
   ```sh
-  wget -qO /tmp/install-nfqws-web.sh https://raw.githubusercontent.com/Twinkle264/Keenetic-NFQWS-Web-Theme/main/install.sh && sh /tmp/install-nfqws-web.sh v0.2.0
+  wget -qO- https://raw.githubusercontent.com/Twinkle264/Keenetic-NFQWS-Web-Theme/main/install.sh | sh -s -- v0.2.0
+  ```
+
+  Восстановление резервной копии:
+  ```sh
+  wget -qO- https://raw.githubusercontent.com/Twinkle264/Keenetic-NFQWS-Web-Theme/main/restore.sh | sh -s
   ```
 
 ### Вариант 2 — вручную
