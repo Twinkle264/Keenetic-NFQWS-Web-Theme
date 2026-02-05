@@ -68,9 +68,15 @@ export function applyI18nTheme(UI) {
             this.dom.createFileCancel.textContent = this.translations.cancel;
             this.dom.createFileName.placeholder = this.translations.createFilePlaceholder;
             
-            // Availability popup
-            this.dom.availabilityTitle.textContent = this.translations.checkingDomains || 'Проверка доступности доменов';
-            this.dom.availabilityClose.textContent = this.translations.close || 'Закрыть';
+        // Availability popup
+        this.dom.availabilityTitle.textContent = this.translations.checkingDomains || 'Проверка доступности доменов';
+        this.dom.availabilityClose.textContent = this.translations.close || 'Закрыть';
+        if (this.dom.availabilityRetry) {
+            this.dom.availabilityRetry.textContent = this.translations.retryCheck || 'Повторить';
+        }
+        if (this.dom.availabilityCancel) {
+            this.dom.availabilityCancel.textContent = this.translations.cancelCheck || 'Остановить';
+        }
             
             // Statistics labels
             const totalLabel = this.dom.totalLabel;

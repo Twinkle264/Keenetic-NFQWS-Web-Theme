@@ -19,14 +19,14 @@
     <meta name="color-scheme" content="light dark">
 
     <!-- CodeMirror для подсветки синтаксиса -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/display/fullscreen.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/shell/shell.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/display/fullscreen.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+    <link rel="stylesheet" href="vendor/codemirror/lib/codemirror.min.css">
+    <link rel="stylesheet" href="vendor/codemirror/theme/dracula.min.css">
+    <link rel="stylesheet" href="vendor/codemirror/addon/display/fullscreen.min.css">
+    <script src="vendor/codemirror/lib/codemirror.min.js"></script>
+    <script src="vendor/codemirror/mode/shell/shell.min.js"></script>
+    <script src="vendor/codemirror/addon/display/fullscreen.min.js"></script>
+    <script src="vendor/codemirror/addon/edit/matchbrackets.min.js"></script>
+    <script src="vendor/codemirror/addon/edit/closebrackets.min.js"></script>
     <script src="nfqws-syntax.js"></script>
 
     <script defer src="tln.min.js?v=v2.10.8"></script>
@@ -337,6 +337,8 @@
         <div class="domains-list" id="domains-list"></div>
     </div>
     <div class="popup-footer">
+        <button class="button" id="availability-retry">Повторить</button>
+        <button class="button" id="availability-cancel">Остановить</button>
         <button class="popup-close" id="availability-close">Закрыть</button>
     </div>
 </div>
@@ -460,7 +462,7 @@
                     </label>
                 </div>
             </div>
-            <div class="version-info" id="version-info">
+            <div class="version-info is-hidden" id="version-info">
                 <div class="info-row">
                     <span class="info-label">Status:</span>
                     <span class="info-value" id="selected-version-status">-</span>
@@ -474,7 +476,7 @@
                     <span class="info-value" id="selected-installed">-</span>
                 </div>
             </div>
-            <div class="switch-warning" id="switch-warning" style="display: none;">
+            <div class="switch-warning is-hidden" id="switch-warning">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
                     <line x1="12" y1="9" x2="12" y2="13"></line>

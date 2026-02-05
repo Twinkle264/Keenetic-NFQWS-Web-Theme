@@ -281,6 +281,8 @@ class UI {
             progress: byId('progress'),
             progressBar: byId('progress-bar'),
             domainsList: byId('domains-list'),
+            availabilityRetry: byId('availability-retry'),
+            availabilityCancel: byId('availability-cancel'),
             totalLabel: document.querySelector('[data-label="total"]'),
             accessibleLabel: document.querySelector('[data-label="accessible"]'),
             blockedLabel: document.querySelector('[data-label="blocked"]'),

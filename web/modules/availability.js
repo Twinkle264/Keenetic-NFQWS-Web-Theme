@@ -9,6 +9,7 @@ export function applyAvailability(UI) {
             }
 
             this.checkInProgress = true;
+            this.availabilityCancelled = false;
 
             try {
                 const content = this.editor.getValue();
@@ -20,10 +21,30 @@ export function applyAvailability(UI) {
                     return;
                 }
 
+                this.currentDomains = domains;
                 this.showAvailabilityPopup(domains);
                 await this.checkDomains(domains);
             } catch (error) {
                 console.error('Error checking domains:', error);
+                this.showError(`${this.translations.domainCheckError}: ${error.message}`);
+                this.checkInProgress = false;
+            }
+        },
+
+        async retryDomainCheck() {
+            if (!this.isAuthenticated || this.checkInProgress || !this.currentDomains?.length) return;
+
+            this.checkInProgress = true;
+            this.availabilityCancelled = false;
+            const availabilityTitle = this.dom.availabilityTitle;
+            if (availabilityTitle) {
+                availabilityTitle.textContent = this.translations.retryCheckingDomains || 'Повторная проверка доступности доменов...';
+            }
+
+            try {
+                await this.checkDomains(this.currentDomains);
+            } catch (error) {
+                console.error('Error retrying domain check:', error);
                 this.showError(`${this.translations.domainCheckError}: ${error.message}`);
                 this.checkInProgress = false;
             }
@@ -86,6 +107,11 @@ export function applyAvailability(UI) {
         },
 
         async checkDomains(domains) {
+            this.availabilityCancelled = false;
+            this.availabilityAbortControllers = new Set();
+            this.availabilityPendingIframes = new Set();
+            this.availabilityPendingImages = new Set();
+
             const total = domains.length;
             let checked = 0;
             let accessible = 0;
@@ -93,15 +119,22 @@ export function applyAvailability(UI) {
 
             const checkButton = this.dom.checkAvailability;
             const checkButtonText = this.dom.checkAvailabilityText;
+            const retryButton = this.dom.availabilityRetry;
             const originalText = this.setButtonLoading(
                 checkButton,
                 checkButtonText,
                 `⏳ ${this.translations.checkingInProgress}`
             );
+            if (retryButton) {
+                retryButton.disabled = true;
+                retryButton.classList.add('disabled');
+            }
 
             const checkPromises = domains.map(async (domain) => {
                 try {
-                    const isAccessible = await this.checkDomainAccessibility(domain);
+                    if (this.availabilityCancelled) return { domain, accessible: false, cancelled: true };
+                    const isAccessible = await this.checkSingleDomain(domain);
+                    if (this.availabilityCancelled) return { domain, accessible: false, cancelled: true };
                     checked++;
                     if (isAccessible) {
                         accessible++;
@@ -112,6 +145,7 @@ export function applyAvailability(UI) {
                     await new Promise(resolve => setTimeout(resolve, 50));
                     return { domain, accessible: isAccessible };
                 } catch (error) {
+                    if (this.availabilityCancelled) return { domain, accessible: false, cancelled: true };
                     checked++;
                     blocked++;
                     this.updateAvailabilityUI(domain, false, checked, total, accessible, blocked);
@@ -120,69 +154,121 @@ export function applyAvailability(UI) {
             });
 
             try {
-                const batchSize = 10;
-                for (let i = 0; i < checkPromises.length; i += batchSize) {
-                    const batch = checkPromises.slice(i, i + batchSize);
-                    await Promise.all(batch);
+                for (let i = 0; i < checkPromises.length; i += 10) {
+                    const batch = checkPromises.slice(i, i + 10);
+                    await Promise.allSettled(batch);
+                    if (this.availabilityCancelled) break;
                 }
 
-                this.finalizeAvailabilityCheck(accessible, blocked);
+                if (!this.availabilityCancelled) {
+                    this.finalizeAvailabilityCheck(accessible, blocked);
+                }
             } catch (error) {
                 console.error('Domain check error:', error);
             } finally {
                 this.checkInProgress = false;
                 this.restoreButton(checkButton, checkButtonText, originalText);
+                if (retryButton) {
+                    retryButton.disabled = false;
+                    retryButton.classList.remove('disabled');
+                }
+                this.clearAvailabilityPending();
             }
         },
 
-        async checkDomainAccessibility(domain) {
-            return new Promise((resolve, reject) => {
-                const timeout = 3000;
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => {
-                    controller.abort();
-                    reject(new Error('Таймаут'));
-                }, timeout);
+        async checkSingleDomain(domain) {
+            const methods = [
+                this.checkWithFetch.bind(this, domain),
+                this.checkWithImage.bind(this, domain),
+                this.checkWithIframe.bind(this, domain)
+            ];
 
-                fetch(`https://${domain}`, {
+            for (const method of methods) {
+                if (this.availabilityCancelled) return false;
+                try {
+                    const result = await Promise.race([
+                        method(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000))
+                    ]);
+                    if (result) return true;
+                } catch (error) {
+                    continue;
+                }
+            }
+
+            return false;
+        },
+
+        async checkWithFetch(domain) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 1500);
+                this.availabilityAbortControllers?.add(controller);
+
+                await fetch(`https://${domain}`, {
                     method: 'HEAD',
                     mode: 'no-cors',
                     signal: controller.signal,
                     headers: {
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                     }
-                })
-                .then(() => {
-                    clearTimeout(timeoutId);
-                    resolve(true);
-                })
-                .catch(() => {
-                    clearTimeout(timeoutId);
-                    this.checkWithImage(domain).then(resolve).catch(() => {
-                        this.checkWithHttp(domain).then(resolve).catch(() => resolve(false));
-                    });
                 });
-            });
+
+                clearTimeout(timeoutId);
+                this.availabilityAbortControllers?.delete(controller);
+                return true;
+            } catch (error) {
+                if (error?.name === 'AbortError' && this.availabilityCancelled) {
+                    throw error;
+                }
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 1500);
+                    this.availabilityAbortControllers?.add(controller);
+
+                    await fetch(`http://${domain}`, {
+                        method: 'HEAD',
+                        mode: 'no-cors',
+                        signal: controller.signal,
+                        headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                });
+
+                    clearTimeout(timeoutId);
+                    this.availabilityAbortControllers?.delete(controller);
+                    return true;
+                } catch (httpError) {
+                    throw error;
+                }
+            }
         },
 
         async checkWithImage(domain) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
-                const timeout = 2000;
+                const timeout = 1500;
+                if (!this.availabilityPendingImages) {
+                    this.availabilityPendingImages = new Set();
+                }
+                this.availabilityPendingImages.add(img);
 
                 const timeoutId = setTimeout(() => {
                     img.onerror = null;
                     img.onload = null;
+                    this.availabilityPendingImages?.delete(img);
                     reject(new Error('Таймаут'));
                 }, timeout);
 
                 img.onload = () => {
                     clearTimeout(timeoutId);
+                    this.availabilityPendingImages?.delete(img);
                     resolve(true);
                 };
 
                 img.onerror = () => {
                     clearTimeout(timeoutId);
+                    this.availabilityPendingImages?.delete(img);
                     reject(new Error('Изображение не загрузилось'));
                 };
 
@@ -190,32 +276,42 @@ export function applyAvailability(UI) {
             });
         },
 
-        async checkWithHttp(domain) {
+        async checkWithIframe(domain) {
             return new Promise((resolve, reject) => {
-                const xhr = new XMLHttpRequest();
-                const timeout = 2000;
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                if (!this.availabilityPendingIframes) {
+                    this.availabilityPendingIframes = new Set();
+                }
+                this.availabilityPendingIframes.add(iframe);
 
-                xhr.timeout = timeout;
-                xhr.onreadystatechange = () => {
-                    if (xhr.readyState === 4) {
-                        resolve(true);
-                    }
+                const timeoutId = setTimeout(() => {
+                    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                    this.availabilityPendingIframes?.delete(iframe);
+                    reject(new Error('Timeout'));
+                }, 1500);
+
+                iframe.onload = () => {
+                    clearTimeout(timeoutId);
+                    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                    this.availabilityPendingIframes?.delete(iframe);
+                    resolve(true);
                 };
 
-                xhr.ontimeout = () => {
-                    reject(new Error('Таймаут'));
+                iframe.onerror = () => {
+                    clearTimeout(timeoutId);
+                    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                    this.availabilityPendingIframes?.delete(iframe);
+                    reject(new Error('Iframe error'));
                 };
 
-                xhr.onerror = () => {
-                    reject(new Error('Ошибка сети'));
-                };
-
-                xhr.open('HEAD', `http://${domain}`, true);
-                xhr.send();
+                iframe.src = `https://${domain}`;
+                document.body.appendChild(iframe);
             });
         },
 
         updateAvailabilityUI(domain, isAccessible, checked, total, accessible, blocked) {
+            if (this.availabilityCancelled) return;
             this.dom.totalDomains.textContent = total;
             this.dom.accessibleDomains.textContent = accessible;
             this.dom.blockedDomains.textContent = blocked;
@@ -247,6 +343,29 @@ export function applyAvailability(UI) {
             this.domainItems = new Map();
         },
 
+        resetAvailabilityState() {
+            this.checkInProgress = false;
+            const checkButton = this.dom.checkAvailability;
+            const checkButtonText = this.dom.checkAvailabilityText;
+            if (checkButton) {
+                checkButton.disabled = false;
+                checkButton.classList.remove('disabled');
+            }
+            if (checkButtonText) {
+                checkButtonText.textContent = this.translations.checkAvailability || 'Проверить доступность';
+            }
+            const retryButton = this.dom.availabilityRetry;
+            if (retryButton) {
+                retryButton.disabled = false;
+                retryButton.classList.remove('disabled');
+            }
+            const cancelButton = this.dom.availabilityCancel;
+            if (cancelButton) {
+                cancelButton.disabled = false;
+                cancelButton.classList.remove('disabled');
+            }
+        },
+
         createDomainItem(domain) {
             const domainItem = document.createElement('div');
             domainItem.className = 'domain-item pending';
@@ -259,8 +378,47 @@ export function applyAvailability(UI) {
         },
 
         finalizeAvailabilityCheck(accessible, blocked) {
-            this.showSuccess(`${this.translations.domainCheckComplete || 'Проверка доменов завершена'}: ${accessible} доступны, ${blocked} заблокированы`);
+            const message = this.translations.domainCheckCompleted
+                ? this.translations.domainCheckCompleted
+                    .replace('{accessible}', accessible)
+                    .replace('{blocked}', blocked)
+                : `${this.translations.domainCheckComplete || 'Проверка доменов завершена'}: ${accessible} доступны, ${blocked} заблокированы`;
+
+            this.showSuccess(message);
             this.dom.availabilityTitle.textContent = `${this.translations.domainCheckComplete || 'Проверка доменов завершена'}`;
+        },
+
+        clearAvailabilityPending() {
+            if (this.availabilityAbortControllers) {
+                this.availabilityAbortControllers.forEach(controller => controller.abort());
+                this.availabilityAbortControllers.clear();
+            }
+            if (this.availabilityPendingIframes) {
+                this.availabilityPendingIframes.forEach(iframe => {
+                    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                });
+                this.availabilityPendingIframes.clear();
+            }
+            if (this.availabilityPendingImages) {
+                this.availabilityPendingImages.forEach(img => {
+                    img.onload = null;
+                    img.onerror = null;
+                    img.src = '';
+                });
+                this.availabilityPendingImages.clear();
+            }
+        },
+
+        cancelAvailabilityCheck() {
+            if (!this.checkInProgress) return;
+            this.availabilityCancelled = true;
+            this.clearAvailabilityPending();
+            this.checkInProgress = false;
+            const availabilityTitle = this.dom.availabilityTitle;
+            if (availabilityTitle) {
+                availabilityTitle.textContent = this.translations.domainCheckComplete || 'Проверка доменов завершена';
+            }
+            this.resetAvailabilityState();
         }
     });
 }

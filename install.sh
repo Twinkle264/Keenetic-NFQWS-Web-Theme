@@ -1,6 +1,24 @@
 #!/bin/sh
 set -e
 
+SELF_PATH="$0"
+TMP=""
+
+cleanup() {
+    if [ -n "$TMP" ] && [ -d "$TMP" ]; then
+        rm -rf "$TMP" >/dev/null 2>&1 || true
+    fi
+    if [ -f "$SELF_PATH" ]; then
+        rm -f "$SELF_PATH" >/dev/null 2>&1 || true
+    fi
+}
+
+trap cleanup EXIT INT TERM
+
+if [ -f "/tmp/install-nfqws-web.sh" ] && [ "$SELF_PATH" != "/tmp/install-nfqws-web.sh" ]; then
+    rm -f "/tmp/install-nfqws-web.sh" >/dev/null 2>&1 || true
+fi
+
 REPO_OWNER="Twinkle264"
 REPO_NAME="Keenetic-NFQWS-Web-Theme"
 TARGET=""
@@ -91,8 +109,5 @@ fi
 mkdir -p "$TMP/unpacked"
 tar -xzf "$ARCHIVE" -C "$TMP/unpacked"
 cp -a "$TMP/unpacked/." "$TARGET/"
-
-cd /
-rm -rf "$TMP"
 
 echo "OK: installed ${VERSION_TAG} to ${TARGET}"

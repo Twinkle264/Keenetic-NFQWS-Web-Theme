@@ -868,6 +868,11 @@ body.fullscreen-active footer {
     min-height: 420px;
 }
 
+#switch-version-popup {
+    width: 420px;
+    max-width: 90vw;
+}
+
 .switch-version-form .form-group {
     display: flex;
     flex-direction: column;
@@ -923,6 +928,7 @@ body.fullscreen-active footer {
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
+    min-height: 72px;
 }
 
 .version-info .info-row {
@@ -964,6 +970,13 @@ body.fullscreen-active footer {
     border: 0px solid var(--color-warning);
     color: var(--color-warning);
     font-size: 13px;
+    min-height: 44px;
+}
+
+.switch-warning.is-hidden,
+.version-info.is-hidden {
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .switch-warning svg {

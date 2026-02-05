@@ -5,9 +5,36 @@ export function applyPopups(UI) {
         initAvailabilityPopup() {
             const popup = this.dom.availabilityPopup;
             const closeBtn = this.dom.availabilityClose;
+            const retryBtn = this.dom.availabilityRetry;
+            const cancelBtn = this.dom.availabilityCancel;
             const headerCloseBtn = popup.querySelector('.popup-close-btn');
-            
-            this.bindPopupClose(popup, closeBtn, headerCloseBtn);
+
+            const close = () => {
+                if (typeof this.cancelAvailabilityCheck === 'function') {
+                    this.cancelAvailabilityCheck();
+                }
+                this.closePopupSimple(popup);
+                if (typeof this.resetAvailabilityState === 'function') {
+                    this.resetAvailabilityState();
+                }
+                if (typeof this.resetAvailabilityUI === 'function') {
+                    this.resetAvailabilityUI({
+                        title: this.dom.availabilityTitle,
+                        totalDomains: this.dom.totalDomains,
+                        accessibleDomains: this.dom.accessibleDomains,
+                        blockedDomains: this.dom.blockedDomains,
+                        progress: this.dom.progress,
+                        progressBar: this.dom.progressBar,
+                        domainsList: this.dom.domainsList,
+                        totalCount: 0
+                    });
+                }
+            };
+
+            if (closeBtn) closeBtn.addEventListener('click', close);
+            if (headerCloseBtn) headerCloseBtn.addEventListener('click', close);
+            if (retryBtn) retryBtn.addEventListener('click', () => this.retryDomainCheck());
+            if (cancelBtn) cancelBtn.addEventListener('click', () => this.cancelAvailabilityCheck());
         },
 
         showLoginForm() {

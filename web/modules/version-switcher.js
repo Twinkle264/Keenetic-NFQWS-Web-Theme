@@ -141,7 +141,9 @@ export function applyVersionSwitcher(UI) {
                 return;
             }
 
-            if (this.dom.versionInfo) this.dom.versionInfo.style.display = 'block';
+            if (this.dom.versionInfo) {
+                this.dom.versionInfo.classList.remove('is-hidden');
+            }
             if (this.dom.selectedVersionStatus) {
                 this.dom.selectedVersionStatus.textContent = info.active
                     ? this.translations.active || 'Active'
@@ -158,7 +160,7 @@ export function applyVersionSwitcher(UI) {
             }
 
             if (this.dom.switchWarning) {
-                this.dom.switchWarning.style.display = 'flex';
+                this.dom.switchWarning.classList.remove('is-hidden');
             }
             if (this.dom.warningText) {
                 if (version !== this.activeVersion && this.activeVersion !== 'none') {
@@ -173,8 +175,8 @@ export function applyVersionSwitcher(UI) {
             if (this.dom.selectedVersionStatus) this.dom.selectedVersionStatus.textContent = '-';
             if (this.dom.selectedVersionValue) this.dom.selectedVersionValue.textContent = '-';
             if (this.dom.selectedInstalled) this.dom.selectedInstalled.textContent = '-';
-            if (this.dom.versionInfo) this.dom.versionInfo.style.display = 'none';
-            if (this.dom.switchWarning) this.dom.switchWarning.style.display = 'none';
+            if (this.dom.versionInfo) this.dom.versionInfo.classList.add('is-hidden');
+            if (this.dom.switchWarning) this.dom.switchWarning.classList.add('is-hidden');
         },
 
         async confirmSwitchVersion() {

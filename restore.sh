@@ -1,6 +1,20 @@
 #!/bin/sh
 set -e
 
+SELF_PATH="$0"
+
+cleanup() {
+    if [ -f "$SELF_PATH" ]; then
+        rm -f "$SELF_PATH" >/dev/null 2>&1 || true
+    fi
+}
+
+trap cleanup EXIT INT TERM
+
+if [ -f "/tmp/restore-nfqws-web.sh" ] && [ "$SELF_PATH" != "/tmp/restore-nfqws-web.sh" ]; then
+    rm -f "/tmp/restore-nfqws-web.sh" >/dev/null 2>&1 || true
+fi
+
 TARGET=""
 BACKUP=""
 
