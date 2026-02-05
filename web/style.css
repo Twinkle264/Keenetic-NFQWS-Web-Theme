@@ -867,6 +867,8 @@ body.fullscreen-active footer {
 
 #switch-version-popup .popup-content {
     min-height: 420px;
+    max-height: none;
+    overflow: visible;
 }
 
 #switch-version-popup {
