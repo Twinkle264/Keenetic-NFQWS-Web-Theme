@@ -862,6 +862,7 @@ body.fullscreen-active footer {
     display: flex;
     flex-direction: column;
     gap: var(--space-lg);
+    width: 100%;
 }
 
 #switch-version-popup .popup-content {
@@ -870,7 +871,9 @@ body.fullscreen-active footer {
 
 #switch-version-popup {
     width: 420px;
+    min-width: 420px;
     max-width: 90vw;
+    box-sizing: border-box;
 }
 
 .switch-version-form .form-group {
@@ -884,6 +887,17 @@ body.fullscreen-active footer {
     flex-direction: column;
     gap: var(--space-md);
     margin-top: 10px;
+    width: 100%;
+}
+
+.switch-version-form .radio-label {
+    width: 100%;
+}
+
+.switch-version-form .radio-text {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
 }
 
 .current-version {
@@ -903,6 +917,7 @@ body.fullscreen-active footer {
     border-radius: var(--radius-xs);
     margin-left: var(--space-xs);
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .version-status.active {
