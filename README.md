@@ -68,7 +68,7 @@
 
 ### Вариант 1 — одной командой
 - Скачайте и установите **nfqws-keenetic** из [репозитория](https://github.com/Anonym-tsk/nfqws-keenetic).
-    При установке на nfqws2 обязательно установить [nfqws-web](https://github.com/nfqws/nfqws2-keenetic)
+    При установке на nfqws2 обязательно установить [nfqws-web](https://github.com/nfqws/nfqws-keenetic-web)
 - Поусле установки запустите одну из команд:
 
   Последняя версия:
