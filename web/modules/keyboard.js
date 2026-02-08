@@ -11,7 +11,13 @@ export class KeyboardShortcuts {
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault(); // Предотвращаем стандартное сохранение страницы
                 if (this.ui.isAuthenticated) {
-                    this.ui.saveCurrentFile();
+                    const comparePopup = this.ui.dom && this.ui.dom.comparePopup;
+                    const isCompareOpen = comparePopup && !comparePopup.classList.contains('hidden');
+                    if (isCompareOpen && typeof this.ui.saveCompareBoth === 'function') {
+                        this.ui.saveCompareBoth();
+                    } else {
+                        this.ui.saveCurrentFile();
+                    }
                 }
                 return false;
             }

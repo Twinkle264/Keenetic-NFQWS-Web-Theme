@@ -13,6 +13,7 @@ export function applyCompare(UI) {
             const panelsMobile = popup.querySelector('.compare-panels-mobile');
             const close = () => {
                 popup.classList.add(CLASSNAMES.hidden);
+                this.clearCompareMatchHighlights();
                 const duplicatesPopup = this.dom.duplicatesPopup;
                 if (duplicatesPopup) {
                     duplicatesPopup.classList.remove(CLASSNAMES.hidden);
@@ -123,6 +124,7 @@ export function applyCompare(UI) {
                 this.refreshCompareEditors();
                 this.scrollCompareToLines(this.compareTargetLines);
                 this.applyCompareHighlight(this.compareTargetLines);
+                this.updateCompareMatchHighlights();
             }, 0);
         },
 
@@ -136,14 +138,17 @@ export function applyCompare(UI) {
         initCompareEditors({ leftContentDesktop, rightContentDesktop, contentMobile, currentName, compareFile, leftValue, rightValue }) {
             if (!this.compareDesktopLeftEditor) {
                 this.compareDesktopLeftEditor = this.createCompareEditor(leftContentDesktop);
+                this.bindCompareEditorChanges(this.compareDesktopLeftEditor);
             }
 
             if (!this.compareDesktopRightEditor) {
                 this.compareDesktopRightEditor = this.createCompareEditor(rightContentDesktop);
+                this.bindCompareEditorChanges(this.compareDesktopRightEditor);
             }
 
             if (!this.compareMobileEditor) {
                 this.compareMobileEditor = this.createCompareEditor(contentMobile);
+                this.bindCompareEditorChanges(this.compareMobileEditor);
             }
 
             this.compareDesktopLeftEditor.setValue(leftValue);
@@ -157,8 +162,24 @@ export function applyCompare(UI) {
         createCompareEditor(textarea) {
             return this.createCodeMirrorEditor(textarea, {
                 mode: 'text/plain',
-                readOnly: false
+                readOnly: false,
+                extraKeys: {
+                    "Ctrl-S": () => {
+                        this.saveCompareBoth();
+                        return false;
+                    },
+                    "Cmd-S": () => {
+                        this.saveCompareBoth();
+                        return false;
+                    }
+                }
             });
+        },
+
+        bindCompareEditorChanges(editor) {
+            if (!editor || editor._compareBound) return;
+            editor.on('change', () => this.scheduleCompareMatchUpdate());
+            editor._compareBound = true;
         },
 
         isCompareMobile() {
@@ -197,6 +218,7 @@ export function applyCompare(UI) {
             if (this.compareTargetLines) {
                 this.applyCompareHighlight(this.compareTargetLines);
             }
+            this.updateCompareMatchHighlights();
 
             const leftName = this.dom.compareLeftNameMobile;
             const rightName = this.dom.compareRightNameMobile;
@@ -304,6 +326,115 @@ export function applyCompare(UI) {
             if (this.compareDesktopLeftEditor) this.compareDesktopLeftEditor.refresh();
             if (this.compareDesktopRightEditor) this.compareDesktopRightEditor.refresh();
             if (this.compareMobileEditor) this.compareMobileEditor.refresh();
+        },
+
+        scheduleCompareMatchUpdate() {
+            if (this.compareMatchTimer) {
+                clearTimeout(this.compareMatchTimer);
+            }
+            this.compareMatchTimer = setTimeout(() => {
+                this.updateCompareMatchHighlights();
+            }, 300);
+        },
+
+        updateCompareMatchHighlights() {
+            if (!this.compareLeftFilename || !this.compareRightFilename) return;
+            if (!this.isListFile(this.compareLeftFilename) || !this.isListFile(this.compareRightFilename)) {
+                this.clearCompareMatchHighlights();
+                return;
+            }
+            if (!this.compareBuffers) return;
+
+            if (!this.isCompareMobile()) {
+                this.updateCompareBuffersFromDesktop();
+            } else {
+                this.updateCompareBuffersFromMobile();
+            }
+
+            const leftContent = this.compareBuffers.left || '';
+            const rightContent = this.compareBuffers.right || '';
+            const leftEntries = this.parseListLines ? this.parseListLines(leftContent) : [];
+            const rightEntries = this.parseListLines ? this.parseListLines(rightContent) : [];
+
+            const leftMap = new Map();
+            const rightMap = new Map();
+
+            leftEntries.forEach((entry) => {
+                if (!leftMap.has(entry.value)) leftMap.set(entry.value, []);
+                leftMap.get(entry.value).push(entry.lineNumber);
+            });
+            rightEntries.forEach((entry) => {
+                if (!rightMap.has(entry.value)) rightMap.set(entry.value, []);
+                rightMap.get(entry.value).push(entry.lineNumber);
+            });
+
+            const leftLines = new Set();
+            const rightLines = new Set();
+            leftMap.forEach((lines, value) => {
+                if (!rightMap.has(value)) return;
+                lines.forEach((line) => leftLines.add(line));
+                rightMap.get(value).forEach((line) => rightLines.add(line));
+            });
+
+            this.clearCompareMatchHighlights();
+            this.compareMatchLines = { left: leftLines, right: rightLines };
+
+            if (this.compareDesktopLeftEditor) {
+                leftLines.forEach((line) => {
+                    const handle = this.compareDesktopLeftEditor.getLineHandle(line - 1);
+                    if (!handle) return;
+                    this.compareDesktopLeftEditor.addLineClass(handle, 'background', 'compare-match-line');
+                    this.compareDesktopLeftEditor.addLineClass(handle, 'gutter', 'compare-match-marker');
+                    this.compareMatchHandles = this.compareMatchHandles || { left: [], right: [], mobile: [] };
+                    this.compareMatchHandles.left.push(handle);
+                });
+            }
+
+            if (this.compareDesktopRightEditor) {
+                rightLines.forEach((line) => {
+                    const handle = this.compareDesktopRightEditor.getLineHandle(line - 1);
+                    if (!handle) return;
+                    this.compareDesktopRightEditor.addLineClass(handle, 'background', 'compare-match-line');
+                    this.compareDesktopRightEditor.addLineClass(handle, 'gutter', 'compare-match-marker');
+                    this.compareMatchHandles = this.compareMatchHandles || { left: [], right: [], mobile: [] };
+                    this.compareMatchHandles.right.push(handle);
+                });
+            }
+
+            if (this.compareMobileEditor) {
+                const side = this.compareActiveSideMobile || 'left';
+                const mobileLines = side === 'right' ? rightLines : leftLines;
+                mobileLines.forEach((line) => {
+                    const handle = this.compareMobileEditor.getLineHandle(line - 1);
+                    if (!handle) return;
+                    this.compareMobileEditor.addLineClass(handle, 'background', 'compare-match-line');
+                    this.compareMobileEditor.addLineClass(handle, 'gutter', 'compare-match-marker');
+                    this.compareMatchHandles = this.compareMatchHandles || { left: [], right: [], mobile: [] };
+                    this.compareMatchHandles.mobile.push(handle);
+                });
+            }
+        },
+
+        clearCompareMatchHighlights() {
+            if (this.compareMatchHandles?.left && this.compareDesktopLeftEditor) {
+                this.compareMatchHandles.left.forEach((handle) => {
+                    this.compareDesktopLeftEditor.removeLineClass(handle, 'background', 'compare-match-line');
+                    this.compareDesktopLeftEditor.removeLineClass(handle, 'gutter', 'compare-match-marker');
+                });
+            }
+            if (this.compareMatchHandles?.right && this.compareDesktopRightEditor) {
+                this.compareMatchHandles.right.forEach((handle) => {
+                    this.compareDesktopRightEditor.removeLineClass(handle, 'background', 'compare-match-line');
+                    this.compareDesktopRightEditor.removeLineClass(handle, 'gutter', 'compare-match-marker');
+                });
+            }
+            if (this.compareMatchHandles?.mobile && this.compareMobileEditor) {
+                this.compareMatchHandles.mobile.forEach((handle) => {
+                    this.compareMobileEditor.removeLineClass(handle, 'background', 'compare-match-line');
+                    this.compareMobileEditor.removeLineClass(handle, 'gutter', 'compare-match-marker');
+                });
+            }
+            this.compareMatchHandles = { left: [], right: [], mobile: [] };
         },
 
         clearCompareHighlights() {

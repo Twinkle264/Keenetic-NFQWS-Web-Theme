@@ -1873,6 +1873,28 @@ body.changed #save {
     border-left: 2px solid var(--color-error);
 }
 
+.compare-match-line {
+    background: rgba(245, 197, 66, 0.06);
+    border-left: 2px solid rgba(245, 197, 66, 0.35);
+}
+
+.CodeMirror-gutter-elt.compare-match-marker {
+    position: relative;
+}
+
+.CodeMirror-gutter-elt.compare-match-marker::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(245, 197, 66, 0.6);
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
 .compare-highlight-line {
     background: rgba(245, 197, 66, 0.14);
     border-left: 2px solid #f5c542;
