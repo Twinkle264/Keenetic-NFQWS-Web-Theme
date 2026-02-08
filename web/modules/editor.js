@@ -11,6 +11,14 @@ export function applyEditor(UI) {
                 placeholder: this.translations.placeholder,
                 readOnly: !this.isAuthenticated,
                 extraKeys: {
+                    "Ctrl-/": (cm) => {
+                        this.toggleComment(cm);
+                        return false; // Предотвращаем стандартное поведение
+                    },
+                    "Cmd-/": (cm) => {
+                        this.toggleComment(cm);
+                        return false; // Предотвращаем стандартное поведение
+                    },
                     "Ctrl-S": (cm) => {
                         this.saveCurrentFile();
                         return false; // Предотвращаем стандартное поведение
@@ -55,6 +63,86 @@ export function applyEditor(UI) {
             this.editor.on('focus', () => {
                 document.activeEditor = this.editor;
             });
+        },
+
+        toggleComment(cm) {
+            const selections = cm.listSelections();
+            if (selections.length === 0) return;
+
+            // Определяем, что делать: комментировать или раскомментировать
+            let shouldComment = false;
+            let hasUncommented = false;
+            let hasCommented = false;
+
+            // Сначала анализируем все строки в выделениях
+            selections.forEach((selection) => {
+                const startLine = Math.min(selection.anchor.line, selection.head.line);
+                const endLine = Math.max(selection.anchor.line, selection.head.line);
+
+                for (let line = startLine; line <= endLine; line++) {
+                    const lineText = cm.getLine(line);
+                    const trimmed = lineText.trim();
+                    
+                    if (trimmed === '') continue; // Пропускаем пустые строки
+                    
+                    if (trimmed.startsWith('#')) {
+                        hasCommented = true;
+                    } else {
+                        hasUncommented = true;
+                    }
+                }
+            });
+
+            // Если есть незакомментированные строки, комментируем
+            // Если все строки закомментированы, раскомментируем
+            shouldComment = hasUncommented || !hasCommented;
+
+            // Применяем изменения
+            cm.operation(() => {
+                selections.forEach((selection) => {
+                    const startLine = Math.min(selection.anchor.line, selection.head.line);
+                    const endLine = Math.max(selection.anchor.line, selection.head.line);
+
+                    for (let line = startLine; line <= endLine; line++) {
+                        const lineText = cm.getLine(line);
+                        const trimmed = lineText.trim();
+                        
+                        if (trimmed === '') continue; // Пропускаем пустые строки
+                        
+                        const leadingSpaces = lineText.match(/^\s*/)[0];
+                        const content = lineText.slice(leadingSpaces.length);
+
+                        if (shouldComment) {
+                            // Комментируем
+                            if (!content.startsWith('#')) {
+                                cm.replaceRange(
+                                    '#' + content,
+                                    { line: line, ch: leadingSpaces.length },
+                                    { line: line, ch: lineText.length }
+                                );
+                            }
+                        } else {
+                            // Раскомментируем
+                            if (content.startsWith('#')) {
+                                // Удаляем символ комментария и возможный пробел после него
+                                let toRemove = 1;
+                                if (content.length > 1 && content[1] === ' ') {
+                                    toRemove = 2;
+                                }
+                                
+                                cm.replaceRange(
+                                    content.slice(toRemove),
+                                    { line: line, ch: leadingSpaces.length },
+                                    { line: line, ch: lineText.length }
+                                );
+                            }
+                        }
+                    }
+                });
+            });
+
+            // Возвращаем фокус редактору
+            cm.focus();
         },
 
         checkForChanges() {
