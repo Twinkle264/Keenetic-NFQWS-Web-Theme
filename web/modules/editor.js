@@ -116,7 +116,7 @@ export function applyEditor(UI) {
                             // Комментируем
                             if (!content.startsWith('#')) {
                                 cm.replaceRange(
-                                    '#' + content,
+                                    '# ' + content,
                                     { line: line, ch: leadingSpaces.length },
                                     { line: line, ch: lineText.length }
                                 );

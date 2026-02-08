@@ -573,7 +573,12 @@ class UI {
     }
 
     isConfigFile(filename) {
-        return !!filename && (filename.includes('.conf') || filename.includes('.conf-'));
+        return !!filename && (
+            filename.includes('.conf') ||
+            filename.includes('.conf-') ||
+            filename.endsWith('.list') ||
+            filename.includes('.list-')
+        );
     }
 
     isLogFile(filename) {

@@ -1886,6 +1886,7 @@ body.changed #save {
     font-style: italic;
     white-space: nowrap;
     display: inline-block;
+    user-select: none;
 }
 
 @media (max-width: 900px) {
